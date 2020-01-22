@@ -1,5 +1,8 @@
 const Vector = require('./Vector');
 
+/**
+ * La vue est une fenetre virtuelle délimitant la zone de vision d'un ecran
+ */
 class View {
 	constructor() {
 		this._offset = new Vector(); // offset retranché à la position pour déterminer le point super-gauche
@@ -8,6 +11,9 @@ class View {
 		this._height = 0;
 	}
 
+	// difference entre le point de référence de la vue et le coin supérieur gauche
+	// si (0, 0) alors le point de référence se situe sur le point supérieur gauche
+	// utiliser center() pour positionner le point de référence au centre de la vue
 	get offset() {
 		return this._offset;
 	}

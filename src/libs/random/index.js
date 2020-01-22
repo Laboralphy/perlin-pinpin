@@ -29,7 +29,7 @@ module.exports = class Random {
      * @returns {number} a number between 0 and 1
      * @private
      */
-    _rand() {
+    rand() {
         return this._seed = Math.abs(((Math.sin(this._seed) * 1e12) % 1e6) / 1e6);
     }
 
@@ -45,7 +45,7 @@ module.exports = class Random {
      * @returns {*}
      */
     roll(a, b) {
-        return Math.max(a, Math.min(b, (b - a + 1) * this._rand() + a | 0));
+        return Math.max(a, Math.min(b, (b - a + 1) * this.rand() + a | 0));
     }
 
     /**

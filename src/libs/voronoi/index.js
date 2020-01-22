@@ -17,16 +17,22 @@ class Voronoi {
             x,
             y,
             nearest: [],
-            region: [
-                {x: null, y: null},
-                {x: null, y: null}
-            ],
+            regions: {
+                outer: [
+                    {x: null, y: null},
+                    {x: null, y: null}
+                ],
+                inner: [
+                    {x: null, y: null},
+                    {x: null, y: null}
+                ]
+            },
             interior
         });
     }
 
     computeNearestPoint(p, n) {
-        this._germs
+        const aNearestFound = this._germs
             .filter(pi => pi.index !== p.index)
             .map(pi => ({
                 x: pi.x,
@@ -40,10 +46,12 @@ class Voronoi {
                     x: (pi.x + p.x) / 2,
                     y: (pi.y + p.y) / 2
                 }
-            }))
-            .sort((pa, pb) => pa.distance - pb.distance)
-            .slice(0, n)
-            .forEach(pi => p.nearest.push(pi));
+            }));
+        if (aNearestFound.length >= n) {
+            aNearestFound.sort((pa, pb) => pa.distance - pb.distance)
+                .slice(0, n)
+                .forEach(pi => p.nearest.push(pi));
+        }
     }
 
     computeNearest(n) {
@@ -51,11 +59,7 @@ class Voronoi {
             .filter(p => p.interior)
             .forEach(p => {
                 this.computeNearestPoint(p, n);
-                const xMin = p.nearest.reduce((prev, curr) => Math.min(curr.x, prev), Infinity);
-                const yMin = p.nearest.reduce((prev, curr) => Math.min(curr.y, prev), Infinity);
-                const xMax = p.nearest.reduce((prev, curr) => Math.max(curr.x, prev), -Infinity);
-                const yMax = p.nearest.reduce((prev, curr) => Math.max(curr.y, prev), -Infinity);
-                p.region = [{x: xMin, y: yMin}, {x: xMax, y: yMax}];
+                p.regions.outer = Geometry.Helper.getRegion(p.nearest);
             });
     }
 
@@ -79,7 +83,7 @@ class Voronoi {
         return p.nearest.every(pi => this.isInsideSemiPlaneNearest(x, y, p, pi));
     }
 
-    getCellPointDistance(x, y, p) {
+    _computeCellPointDistance(x, y, p) {
         // get distance between germ and point
         const fDistSeed = Math.max(1, Geometry.Helper.squareDistance(x, y, p.x, p.y));
         // look for nearest
@@ -95,22 +99,43 @@ class Voronoi {
         return (fDistSeed / fDistNearest) * (fDistSeed / fDistNearest);
     }
 
-    getCellPoints(index, rect = null) {
-        const p = this._germs[index];
+    getCellPoints(germ, rect = null) {
         const bRectDefined = rect !== null;
-        let xMin = bRectDefined ? rect[0].x : p.region[0].x;
-        let yMin = bRectDefined ? rect[0].y : p.region[0].y;
-        let xMax = bRectDefined ? rect[1].x : p.region[1].x;
-        let yMax = bRectDefined ? rect[1].y : p.region[1].y;
+        const region = germ.regions.outer;
+        let xMin = bRectDefined ? rect[0].x : region[0].x;
+        let yMin = bRectDefined ? rect[0].y : region[0].y;
+        let xMax = bRectDefined ? rect[1].x : region[1].x;
+        let yMax = bRectDefined ? rect[1].y : region[1].y;
         const aPoints = [];
+        let xInnerMin = Infinity;
+        let yInnerMin = Infinity;
+        let xInnerMax = -Infinity;
+        let yInnerMax = -Infinity;
         for (let y = yMin; y <= yMax; ++y) {
             for (let x = xMin; x <= xMax; ++x) {
-                if (this.isInsideSemiPlane(x, y, p)) {
-                    const d = this.getCellPointDistance(x, y, p);
+                if (this.isInsideSemiPlane(x, y, germ)) {
+                    const d = this._computeCellPointDistance(x, y, germ);
                     aPoints.push({x, y, d});
+                    xInnerMin = Math.min(xInnerMin, x);
+                    yInnerMin = Math.min(yInnerMin, y);
+                    xInnerMax = Math.max(xInnerMax, x);
+                    yInnerMax = Math.max(yInnerMax, y);
                 }
             }
         }
+        germ.regions.inner = [{x: xInnerMin, y: yInnerMin}, {x: xInnerMax, y: yInnerMax}];
+        return aPoints;
+    }
+
+    getAllPoints() {
+        const aPoints = [];
+        this._germs.forEach(germ => {
+            const points = this.getCellPoints(germ);
+            aPoints.push({
+                index: germ.index,
+                points,
+            });
+        });
         return aPoints;
     }
 }

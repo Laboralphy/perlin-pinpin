@@ -78,6 +78,28 @@ class Helper {
 	static polar2rect(angle, norm) {
 		return {dx: norm * Math.cos(angle), dy: norm * Math.sin(angle)};
 	}
+
+	/**
+	 * Délimite une région rectangulaire contenant tous les points
+	 * @param aPoints {array}
+	 * @return {array}
+	 */
+	static getRegion(aPoints) {
+		let xMin = Infinity, yMin = Infinity, xMax = -Infinity, yMax = -Infinity;
+		aPoints.forEach(p => {
+			xMin = Math.min(p.x, xMin);
+			yMin = Math.min(p.y, yMin);
+			xMax = Math.max(p.x, xMax);
+			yMax = Math.max(p.y, yMax);
+		});
+		return [{
+			x: xMin,
+			y: yMin
+		}, {
+			x: xMax,
+			y: yMax
+		}];
+	}
 }
 
 module.exports = Helper;
