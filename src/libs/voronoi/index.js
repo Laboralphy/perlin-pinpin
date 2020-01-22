@@ -79,6 +79,22 @@ class Voronoi {
         return p.nearest.every(pi => this.isInsideSemiPlaneNearest(x, y, p, pi));
     }
 
+    getCellPointDistance(x, y, p) {
+        // get distance between germ and point
+        const fDistSeed = Math.max(1, Geometry.Helper.squareDistance(x, y, p.x, p.y));
+        // look for nearest
+        const oBestNearest = p.nearest.map(n => ({
+            x: n.x,
+            y: n.y,
+            d2: Geometry.Helper.squareDistance(x, y, n.x, n.y)
+        })).sort((n1, n2) => n1.d2 - n2.d2).shift();
+        if (!oBestNearest) {
+            return 0;
+        }
+        const fDistNearest = oBestNearest.d2;
+        return (fDistSeed / fDistNearest) * (fDistSeed / fDistNearest);
+    }
+
     getCellPoints(index, rect = null) {
         const p = this._germs[index];
         const bRectDefined = rect !== null;
@@ -90,7 +106,8 @@ class Voronoi {
         for (let y = yMin; y <= yMax; ++y) {
             for (let x = xMin; x <= xMax; ++x) {
                 if (this.isInsideSemiPlane(x, y, p)) {
-                    aPoints.push({x, y});
+                    const d = this.getCellPointDistance(x, y, p);
+                    aPoints.push({x, y, d});
                 }
             }
         }
