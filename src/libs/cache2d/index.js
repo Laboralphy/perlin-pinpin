@@ -15,10 +15,12 @@ class Cache2D {
 	}
 
 	get size() {
+		this.clear();
 		return this._cacheSize;
 	}
 
 	set size(v) {
+		this.clear();
 		this._cacheSize = v;
 	}
 
@@ -30,9 +32,13 @@ class Cache2D {
 		if (this._xLastRequest === x && this._yLastRequest === y) {
 			return this._oLastRequest;
 		}
-		this._xLastRequest = x;
-		this._yLastRequest = y;
-		return this._oLastRequest = this._cache.find(o => o.x === x && o.y === y);
+		const md = this._cache.find(o => o.x === x && o.y === y);
+		if (!!md) {
+			this._xLastRequest = x;
+			this._yLastRequest = y;
+			this._oLastRequest = md;
+		}
+		return md;
 	}
 
 	load(x, y) {

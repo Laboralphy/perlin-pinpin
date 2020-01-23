@@ -27,7 +27,6 @@ module.exports = class Random {
     /**
      * Return a random generated number using the simple sine-66 function
      * @returns {number} a number between 0 and 1
-     * @private
      */
     rand() {
         return this._seed = Math.abs(((Math.sin(this._seed) * 1e12) % 1e6) / 1e6);

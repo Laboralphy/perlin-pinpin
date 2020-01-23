@@ -2,6 +2,9 @@ import Geometry from '../geometry';
 import Voronoi from "../voronoi";
 import pcghash from "../pcghash";
 import Cache2D from "../cache2d";
+import Perlin from "../perlin";
+import Random from "../random";
+
 
 const {Vector, View, Point} = Geometry;
 
@@ -26,6 +29,8 @@ class Cartography {
     constructor(seed = 0) {
         this._view = new View();
         this._masterSeed = seed;
+        this._rand = new Random();
+        this._rand.seed = seed;
 
         this._metrics = {
             tileSize: 128, // nombre de pixel de coté composant chaque tuile
@@ -33,8 +38,9 @@ class Cartography {
             voronoiClusterSize: 6, // taille d'un groupement de germes voronoi (nombre de germes par coté)
         };
 
-        this._cacheVoronoi = new Cache2D();
-        this._cacheVoronoi.size = 9;
+        this._cacheVoronoi = new Cache2D({
+            size: 9
+        });
     }
 
     rpe_rpt(n) { return Math.floor(n / this.metrics.tileSize); }
@@ -68,8 +74,10 @@ class Cartography {
         const hx = ((h & 255) - 128) / 128;
         const hy = (((h >> 8) & 255) - 128) / 128;
         const m = this.metrics;
-        const vcsOddOffset = odd ? m.voronoiCellSize >> 1 : 0;
-        const vcsDelta = Math.floor(m.voronoiCellSize / 5);
+        const vcs = m.voronoiCellSize;
+        const vcs2 = vcs >> 1;
+        const vcsOddOffset = odd ? vcs2 : 0;
+        const vcsDelta = Math.floor(vcs / 5);
         const xGerm_rpt = Math.floor(this.rpg_rpt(x_rpg) - vcsOddOffset + vcsDelta * hx);
         const yGerm_rpt = Math.floor(this.rpg_rpt(y_rpg) + vcsDelta * hy);
         return {x: xGerm_rpt, y: yGerm_rpt};
@@ -80,13 +88,9 @@ class Cartography {
      * @param x_rpv {number} coordonnées rpv
      * @param y_rpv {number}
      */
-    computeVoronoiCluster(x_rpv, y_rpv) {
-        let v = this._cacheVoronoi.load(x_rpv, y_rpv);
-        if (v !== null) {
-            return v;
-        }
+    getVoronoiCluster(x_rpv, y_rpv) {
         const m = this.metrics;
-        v = new Voronoi();
+        const v = new Voronoi();
         const VOR_CLUSTER_SIZE_RPG = m.voronoiClusterSize;
         const VOR_CELL_SIZE_RPT = m.voronoiCellSize;
 
@@ -134,9 +138,117 @@ class Cartography {
                 );
             }
         }
-        v.computeNearest(6);
-        this._cacheVoronoi.store(x_rpv, y_rpv, v);
+        v.compute(6);
         return v;
+    }
+
+    /**
+     * Transforme un rectangle en carré
+     * @param w {number}
+     * @param h {number}
+     * @private
+     * @return {n, x, y}
+     */
+    _resquare(w, h) {
+        const size = Math.max(w, h);
+        const xOfs = (size - w) >> 1;
+        const yOfs = (size - h) >> 1;
+        return {xOfs, yOfs, size};
+    }
+
+    _createArray2D (w, h) {
+        const a = [];
+        for (let y = 0; y < h; ++y) {
+            const r = [];
+            for (let x = 0; x < w; ++x) {
+                r.push(-1);
+            }
+            a.push(r);
+        }
+        return a;
+    }
+
+    static generateCellWhiteNoise(w, h, rand) {
+        let r, a = [];
+        for (let x, y = 0; y < h; ++y) {
+            r = [];
+            for (x = 0; x < w; ++x) {
+                r[x] = rand(x, y);
+            }
+            a[y] = r;
+        }
+        return a;
+    }
+
+
+    computeContinentalPerlinNoise(map, size, hash) {
+        this._rand.seed = hash;
+
+        const wn = Cartography.generateCellWhiteNoise(size, size, (x, y) => {
+            const f = this._rand.rand();
+            switch (hash % 4) {
+                case 0: // halved
+                    return f / 2;
+
+                case 1: // rounded
+                    return Math.sqrt(f);
+
+                case 2: // rounded
+                    return f * f;
+
+                case 3: // rounded
+                    return f * f * f;
+
+                case 4: // rounded
+                    return f * f * f * f;
+
+                default:
+                    return f;
+            }
+        });
+        const pn = Perlin.generate(wn, 6);
+        return map.map((row, y) => row.map((c, x) => pn[y][x] * c));
+    }
+
+    /**
+     * Calcule une height map associée à la cellule de voronoi spécifée
+     * cette heightmap est la base du relief de l'île qui sera générée dans cette cellule
+     */
+    computeBaseHeightMap(x_rpv, y_rpv) {
+        let oStructure = this._cacheVoronoi.load(x_rpv, y_rpv);
+        if (oStructure !== null) {
+            return oStructure;
+        }
+        const vor = this.getVoronoiCluster(x_rpv, y_rpv);
+        oStructure = {
+            maps: []
+        };
+        // récupérer la liste des rectangles
+        vor
+            .germs
+            .filter(g => g.interior)
+            .forEach(g => {
+                const xStart = g.regions.inner[0].x;
+                const yStart = g.regions.inner[0].y;
+                const oSquare = this._resquare(g.regions.inner[1].x - xStart + 1, g.regions.inner[1].y - yStart + 1);
+                const aMap = this._createArray2D(oSquare.size, oSquare.size);
+                g.points.forEach(p => {
+                    aMap[p.y - yStart][p.x - xStart] = p.d;
+                });
+                const hash = pcghash(g.x, g.y, this.seed);
+                const oCell = {
+                    size: oSquare.size,
+                    offset: {
+                        x: xStart,
+                        y: yStart
+                    },
+                    map: this.computeContinentalPerlinNoise(aMap, oSquare.size, hash),
+                    hash
+                };
+                oStructure.maps.push(oCell);
+            });
+        this._cacheVoronoi.store(x_rpv, y_rpv, oStructure);
+        return oStructure;
     }
 
 
@@ -148,6 +260,9 @@ class Cartography {
         const x_rpv = this.rpg_rpv(this.rpt_rpg(x_rpt));
         const y_rpv = this.rpg_rpv(this.rpt_rpg(y_rpt));
         const vor = this.computeVoronoiCluster(x_rpv, y_rpv);
+        // pour chaque tuile contenue dans la view
+        const pVor = vor.getOnePoint(x_rpt, y_rpt);
+        console.log(x_rpt, y_rpt, pVor);
     }
 
 }

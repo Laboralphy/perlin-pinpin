@@ -4,10 +4,26 @@ class Voronoi {
     constructor() {
         this._germs = [];
         this._pushIndex = 0;
+        this._region = [{x: Infinity, y: Infinity}, {x: -Infinity, y: -Infinity}];
+        this._width = 0;
+        this._height = 0;
+    }
+
+
+    get width() {
+        return this._width;
+    }
+
+    get height() {
+        return this._height;
     }
 
     get germs() {
         return this._germs;
+    }
+
+    get region() {
+        return this._region;
     }
 
     addPoint(x, y, interior = false) {
@@ -27,6 +43,7 @@ class Voronoi {
                     {x: null, y: null}
                 ]
             },
+            points: [],
             interior
         });
     }
@@ -79,7 +96,7 @@ class Voronoi {
         return fAngle <= (Math.PI / 2);
     }
 
-    isInsideSemiPlane(x, y, p) {
+    isInsideAllSemiPlanes(x, y, p) {
         return p.nearest.every(pi => this.isInsideSemiPlaneNearest(x, y, p, pi));
     }
 
@@ -96,10 +113,11 @@ class Voronoi {
             return 0;
         }
         const fDistNearest = oBestNearest.d2;
-        return (fDistSeed / fDistNearest) * (fDistSeed / fDistNearest);
+        return Math.max(0, Math.min(1, 1 - (fDistSeed / fDistNearest)));
     }
 
-    getCellPoints(germ, rect = null) {
+
+    _getCellPoints(germ, rect = null) {
         const bRectDefined = rect !== null;
         const region = germ.regions.outer;
         let xMin = bRectDefined ? rect[0].x : region[0].x;
@@ -113,7 +131,7 @@ class Voronoi {
         let yInnerMax = -Infinity;
         for (let y = yMin; y <= yMax; ++y) {
             for (let x = xMin; x <= xMax; ++x) {
-                if (this.isInsideSemiPlane(x, y, germ)) {
+                if (this.isInsideAllSemiPlanes(x, y, germ)) {
                     const d = this._computeCellPointDistance(x, y, germ);
                     aPoints.push({x, y, d});
                     xInnerMin = Math.min(xInnerMin, x);
@@ -124,21 +142,19 @@ class Voronoi {
             }
         }
         germ.regions.inner = [{x: xInnerMin, y: yInnerMin}, {x: xInnerMax, y: yInnerMax}];
+        this._region[0].x = Math.min(this._region[0].x, xInnerMin);
+        this._region[0].y = Math.min(this._region[0].y, xInnerMax);
+        this._region[1].x = Math.min(this._region[1].x, xInnerMax);
+        this._region[1].y = Math.min(this._region[1].y, yInnerMax);
         return aPoints;
     }
 
-    getAllPoints() {
-        const aPoints = [];
+    compute(n) {
+        this.computeNearest(n);
         this._germs.forEach(germ => {
-            const points = this.getCellPoints(germ);
-            aPoints.push({
-                index: germ.index,
-                points,
-            });
+            germ.points = this._getCellPoints(germ);
         });
-        return aPoints;
     }
 }
-
 
 export default Voronoi;

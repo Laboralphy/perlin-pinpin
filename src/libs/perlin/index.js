@@ -9,7 +9,6 @@ class Perlin {
 		this._height = 64;
 		this._octaves = 8;
 		this._interpolate = null;
-		this._rand = new Random();
 		this.interpolation('cosine');
 		this._seed = 1;
 	}
@@ -199,4 +198,4 @@ class Perlin {
 	}
 }
 
-module.exports = Perlin;
+export default Perlin;
