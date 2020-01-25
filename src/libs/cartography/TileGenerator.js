@@ -3,17 +3,27 @@ import * as Tools2D from "../tools2d";
 import Random from "../random";
 import Perlin from "../perlin";
 
+/**
+ * cette classe génère des height map à partir de bruit
+ * les matrice de bruit sont fournie par la classe Cartography qui génère ce bruit en fonction d'une altitude global
+ */
 class TileGenerator {
 
-    constructor () {
+    constructor ({
+        cache = 64,
+        seed = 0,
+        size = 128,
+        octaves = 8
+    }) {
         this._cache = {
-            wn: new Cache2D(),
-            pn: new Cache2D()
+            wn: new Cache2D({size: cache}),
+            pn: new Cache2D({size: cache}),
+            t: new Cache2D({size: cache})
         };
         this._rand = new Random();
-        this._size = 128;
-        this._octaves = 8;
-        this._seed = 0;
+        this._size = size;
+        this._octaves = octaves;
+        this._seed = seed;
     }
 
     get rand() {
@@ -46,6 +56,16 @@ class TileGenerator {
 
     set seed(value) {
         this._seed = value;
+    }
+
+    /**
+     * change la taille du cache
+     * @param size {number}
+     */
+    setCacheSize(size) {
+        this._cache.wn.size = size;
+        this._cache.pn.size = size;
+        this._cache.t.size = size;
     }
 
     /**
@@ -95,7 +115,54 @@ class TileGenerator {
         return parseFloat(s);
     }
 
-    generate(x, y, callbacks) {
+    /**
+     * Permet d'indexer des zone physique de terrain (déduite à partir de l'altitude min et l'altitude max
+     * @param data
+     * @param meshSize
+     * @returns {Array}
+     */
+    buildPhysicMap(data, meshSize) {
+        let aMap = [];
+        function disc(n) {
+            if (n < 0.5) {
+                return 1;
+            }
+            if (n < 0.65) {
+                return 2;
+            }
+            if (n < 0.75) {
+                return 3;
+            }
+            if (n < 0.85) {
+                return 4;
+            }
+            return 5;
+        }
+        data.forEach((row, y) => {
+            let yMesh = Math.floor(y / meshSize);
+            if (!aMap[yMesh]) {
+                aMap[yMesh] = [];
+            }
+            row.forEach((cell, x) => {
+                let xMesh = Math.floor(x / meshSize);
+                if (!aMap[yMesh][xMesh]) {
+                    aMap[yMesh][xMesh] = {
+                        min: 5,
+                        max: 0,
+                        type: 0
+                    };
+                }
+                let m = aMap[yMesh][xMesh];
+                m.min = Math.min(m.min, cell);
+                m.max = Math.max(m.max, cell);
+                m.type = disc(m.min) * 10 + disc(m.max);
+            });
+        });
+        return aMap;
+    }
+
+
+    generateHeighMap(x, y, callbacks) {
         if (x >= Number.MAX_SAFE_INTEGER || x <= -Number.MAX_SAFE_INTEGER || y >= Number.MAX_SAFE_INTEGER || y <= -Number.MAX_SAFE_INTEGER) {
             throw new Error('trying to generate x:' + x + ' - y:' + y + ' - maximum safe integer is ' + Number.MAX_SAFE_INTEGER + ' !');
         }
@@ -160,6 +227,21 @@ class TileGenerator {
         }
         this._cache.pn.store(x, y, a3);
         return a3;
+    }
+
+    generate(x, y, callbacks) {
+        let t = this._cache.t.load(x, y);
+        if (!!t) {
+            return t;
+        }
+        const heightmap = this.generateHeighMap(x, y, callbacks);
+        const physicmap = this.buildPhysicMap(heightmap, 16);
+        t = {
+            heightmap,
+            physicmap
+        };
+        this._cache.t.store(x, y, t);
+        return t;
     }
 }
 

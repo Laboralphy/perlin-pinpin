@@ -15,7 +15,6 @@ class Cache2D {
 	}
 
 	get size() {
-		this.clear();
 		return this._cacheSize;
 	}
 

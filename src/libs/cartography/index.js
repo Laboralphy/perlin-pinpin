@@ -4,13 +4,10 @@ import pcghash from "../pcghash";
 import Cache2D from "../cache2d";
 import Perlin from "../perlin";
 import Random from "../random";
-
 import * as Tools2D from '../tools2d';
 import TileGenerator from "./TileGenerator";
 
-
 const {Vector, View, Point} = Geometry;
-
 
 class Cartography {
 
@@ -29,7 +26,10 @@ class Cartography {
      */
 
 
-    constructor(seed = 0) {
+    constructor({
+            seed,
+            palette = null
+        }) {
         this._view = new View();
         this._masterSeed = seed;
         this._rand = new Random();
@@ -41,12 +41,20 @@ class Cartography {
             voronoiClusterSize: 6, // taille d'un groupement de germes voronoi (nombre de germes par coté)
         };
 
-        this._cacheVoronoi = new Cache2D({
-            size: 9
+        this._cache = {
+            vor: new Cache2D({
+                size: 9
+            })
+        };
+
+        this._tileGenerator = new TileGenerator({
+            seed,
+            size: 128,
+            octaves: 8,
+            cache: 64,
         });
 
-        this._tileGenerator = new TileGenerator();
-        this._tileGenerator.seed = seed;
+        this._palette = palette;
     }
 
 
@@ -102,6 +110,9 @@ class Cartography {
     rpt_rpe(n) { return n * this.metrics.tileSize; }
     rpg_rpt(n) { return n * this.metrics.voronoiCellSize; }
     rpv_rpg(n) { return n * this.metrics.voronoiClusterSize; }
+
+    // special
+    rpt_rpv(n) { return Math.floor(n / (this.metrics.voronoiClusterSize * this.metrics.voronoiCellSize))}
 
     /**
      * Pour un germe donné, calcule la position réelle en ajoutant des offset aléatoire et des décalage
@@ -198,10 +209,8 @@ class Cartography {
         const wn = Tools2D.createArray2D(size, size, (x, y) => {
             // bruit initial
             const f = this._rand.rand();
-            switch (seed % 6) {
+            switch (seed % 7) {
                 case 0: // les altitudes sont divisée par deux
-                    return f / 2;
-
                 case 1: // les altitude sont convesifiées
                 case 2: // les altitude sont convesifiées
                 case 3: // les altitude sont convesifiées
@@ -238,7 +247,7 @@ class Cartography {
      * cette heightmap est la base du relief de l'île qui sera générée dans cette cellule
      */
     computeVoronoiHeightMap(x_rpv, y_rpv) {
-        let oStructure = this._cacheVoronoi.load(x_rpv, y_rpv);
+        let oStructure = this._cache.vor.load(x_rpv, y_rpv);
         if (oStructure !== null) {
             return oStructure;
         }
@@ -292,7 +301,7 @@ class Cartography {
                 const heightmap = this.computeContinentalPerlinNoise(aMap, oSquare.size, seed);
 
                 // LAND CELL
-                const oCell = {
+                cells[germIndex] = {
                     x: g.x,
                     y: g.y,
                     size: oSquare.size, // taille de la cellule (pour le rendu de perlin)
@@ -303,11 +312,9 @@ class Cartography {
                     heightmap,
                     seed // seed de base de cette cellule
                 };
-
-                cells[germIndex] = oCell;
             });
         oStructure = {cells, tiles};
-        this._cacheVoronoi.store(x_rpv, y_rpv, oStructure);
+        this._cache.vor.store(x_rpv, y_rpv, oStructure);
         return oStructure;
     }
 
@@ -324,11 +331,11 @@ class Cartography {
         const {cells, tiles} = vorCluster;
         const tileRow = tiles[sy_rpt];
         if (tileRow === undefined) {
-            throw new Error('this tile is not located in this voronoi cluster');
+            throw new Error('this t is not located in this voronoi cluster');
         }
         const tile = tileRow[sx_rpt];
         if (tile === undefined) {
-            throw new Error('this tile is not located in this voronoi cluster');
+            throw new Error('this t is not located in this voronoi cluster');
         }
         return tile;
     }
@@ -341,13 +348,15 @@ class Cartography {
         }
     }
 
-    computeTileHeightMap(vorCluster, x_rpt, y_rpt) {
+    computeTile(x_rpt, y_rpt) {
+        // obtenir le cluster qui contient la tuile spécifée
+        const x_rpv = this.rpt_rpv(x_rpt);
+        const y_rpv = this.rpt_rpv(y_rpt);
+        const vorCluster = this.computeVoronoiHeightMap(x_rpv, y_rpv);
         const cells = vorCluster.cells;
 
-
-
-        // a partir du bruit généré par le tile generator on adjoin l'altitude de la tile
-        const heightmap = this._tileGenerator.generate(x_rpt, y_rpt, {
+        // a partir du bruit généré par le t generator on adjoin l'altitude de la t
+        const {heightmap, physicmap} = this._tileGenerator.generate(x_rpt, y_rpt, {
             noise: (xi_rpt, yi_rpt, aNoise) => {
                 const oThisTile = this.getVoronoiTile(vorCluster, xi_rpt, yi_rpt);
                 const hm = cells[oThisTile.cell].heightmap;
@@ -357,8 +366,12 @@ class Cartography {
             }
         });
 
+        // colorization
+
+
         return {
-            heightmap
+            heightmap,
+            physicmap
         };
     }
 

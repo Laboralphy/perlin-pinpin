@@ -4,26 +4,46 @@ import Perlin from "./libs/perlin";
 import Rainbow from "./libs/rainbow";
 import PixelProcessor from "./libs/pixel-processor";
 
+const COLORS = {
+	abyss: '#dec673',
+	depth: '#efd69c',
+	shallow: '#d6a563',
+	shore: '#572507',
+	land: '#d2a638',
+	highland: '#b97735',
+	summit: '#efce8c'
+};
 
-// const COLORS = Rainbow.gradient({
-// 	0: '#006',
-// 	30: 'blue',
-// 	45: 'cyan',
-// 	50: 'yellow',
-// 	75: 'green',
-// 	95: 'gray',
-// 	100: 'white'
-// }).map(c => Rainbow.parse(c));
+function _buildGradient(oPalette) {
+	return Rainbow.gradient({
+		0: oPalette.abyss,
+		40: oPalette.depth,
+		48: oPalette.shallow,
+		50: oPalette.shore,
+		55: oPalette.land,
+		75: oPalette.highland,
+		99: oPalette.summit
+	})
+		.map(x => Rainbow.parse(x))
+		.map(x => x.r | x.g << 8 | x.b << 16 | 0xFF000000);
+}
 
-const COLORS = Rainbow.gradient({
-	0: '#006',
-	30: 'blue',
-	45: 'cyan',
-	50: 'yellow',
-	75: 'green',
-	95: 'gray',
-	100: 'white'
-}).map(c => Rainbow.parse(c));
+function _buildGradientRGB(oPalette) {
+	return Rainbow.gradient({
+		0: oPalette.abyss,
+		40: oPalette.depth,
+		48: oPalette.shallow,
+		50: oPalette.shore,
+		55: oPalette.land,
+		75: oPalette.highland,
+		99: oPalette.summit
+	})
+		.map(x => Rainbow.parse(x));
+}
+
+const PALETTE = _buildGradient(COLORS);
+const PALETTE_RPB = _buildGradientRGB(COLORS);
+
 
 function drawCell(context, v, points, sColor) {
 	return new Promise((resolve, reject) => {
@@ -42,7 +62,7 @@ function drawCell(context, v, points, sColor) {
 async function drawCells(context, v) {
 	const p = v.germs;
 	for (let i = 0; i < p.length; ++i) {
-		await drawCell(context, v, p[i].points, COLORS[p[i].index % COLORS.length]);
+		await drawCell(context, v, p[i].points, PALETTE_RPB[p[i].index % PALETTE_RPB.length]);
 	}
 }
 
@@ -57,7 +77,7 @@ function drawStructure(structure) {
 		const ctx = cvs.getContext('2d');
 		PixelProcessor.process(cvs, pp => {
 			const fHeight = m.heightmap[pp.y][pp.x];
-			let oColor = COLORS[Math.min(COLORS.length - 1, fHeight * COLORS.length | 0)];
+			let oColor = PALETTE_RPB[Math.min(PALETTE_RPB.length - 1, fHeight * PALETTE_RPB.length | 0)];
 			if (fHeight < 0) {
 				pp.color.a = 0;
 			} else {
@@ -78,7 +98,7 @@ function createTileCanvas(heightmap) {
 	const ctx = cvs.getContext('2d');
 	PixelProcessor.process(cvs, pp => {
 		const fHeight = heightmap[pp.y][pp.x];
-		let oColor = COLORS[Math.min(COLORS.length - 1, fHeight * COLORS.length | 0)];
+		let oColor = PALETTE_RPB[Math.min(PALETTE_RPB.length - 1, fHeight * PALETTE_RPB.length | 0)];
 		if (fHeight < 0) {
 			pp.color.a = 0;
 		} else {
@@ -99,7 +119,10 @@ async function runCarto() {
 	oContext.fillStyle = 'rgb(0, 0, 0)';
 	oContext.fillRect(0, 0, oCanvas.width, oCanvas.height);
 
-	const c = new Cartography();
+	const c = new Cartography({
+		seed: 0,
+		PALETTE: PALETTE
+	});
 	c.view.width = 1024;
 	c.view.height = 768;
 	c.metrics.voronoiCellSize = 25;
@@ -110,7 +133,7 @@ async function runCarto() {
 	drawStructure(structure);
 
 	const drawTile = (xTile, yTile, xCanvas, yCanvas) => new Promise(resolve => {
-		const {heightmap} = c.computeTileHeightMap(structure, xTile, yTile);
+		const {heightmap} = c.computeTile(xTile, yTile);
 		const cvs = createTileCanvas(heightmap);
 		requestAnimationFrame(() => {
 			oContext.drawImage(cvs, xCanvas, yCanvas);
