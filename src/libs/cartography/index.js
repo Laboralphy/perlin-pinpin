@@ -5,6 +5,9 @@ import Cache2D from "../cache2d";
 import Perlin from "../perlin";
 import Random from "../random";
 
+import * as Tools2D from '../tools2d';
+import TileGenerator from "./TileGenerator";
+
 
 const {Vector, View, Point} = Geometry;
 
@@ -41,29 +44,68 @@ class Cartography {
         this._cacheVoronoi = new Cache2D({
             size: 9
         });
+
+        this._tileGenerator = new TileGenerator();
+        this._tileGenerator.seed = seed;
     }
 
-    rpe_rpt(n) { return Math.floor(n / this.metrics.tileSize); }
-    rpt_rpg(n) { return Math.floor(n / this.metrics.voronoiCellSize); }
-    rpg_rpv(n) { return Math.floor(n / this.metrics.voronoiClusterSize); }
-    rpt_rpe(n) { return n * this.metrics.tileSize; }
-    rpg_rpt(n) { return n * this.metrics.voronoiCellSize; }
-    rpv_rpg(n) { return n * this.metrics.voronoiClusterSize; }
 
+    /**
+     * obtenir le seed défini en constructor
+     * @returns {number}
+     */
     get seed() {
         return this._masterSeed;
     }
 
+    /**
+     * getter de la fenetre de vue
+     * @returns {View}
+     */
     get view() {
         return this._view;
     }
 
+    /**
+     * getter des metrics
+     * @returns {{voronoiCellSize: number, tileSize: number, voronoiClusterSize: number}}
+     */
     get metrics() {
         return this._metrics;
     }
 
     /**
-     * pour un germe donné, calcule ses position RPT en ajoutant un offset pseudo aléatoire
+     * convertion d'unit rpe (entité) en rpt (tuile)
+     * un tuile correspond à un certain nombre de pixel et c'est ce rapport qui est utilisé pour la conversion
+     * @param n {number} composante de coordonnée exprimée en rpe
+     * @returns {number} composante de coordonnée exprimée en rpt
+     */
+    rpe_rpt(n) { return Math.floor(n / this.metrics.tileSize); }
+
+    /**
+     * convertion d'unit rpt (tuile) en rpg (germe)
+     * les germe sont espacé entre eux d'un certain nombre de tuile et c'est ce rapport qui est utilisé pour la conversion
+     * @param n {number} composante de coordonnée exprimée en rpt
+     * @returns {number} composante de coordonnée exprimée en rpg
+     */
+    rpt_rpg(n) { return Math.floor(n / this.metrics.voronoiCellSize); }
+
+    /**
+     * convertion d'unit" rpg (germe) en rpv (voronoi)
+     * les secteur voronoi sont des ensemble 2D de germes et c'est le nombre de germes qui est utilisé pourt convertir
+     * @param n {number} composante de coordonnée exprimée en rpg
+     * @returns {number} composante de coordonnée exprimée en rpv
+     */
+    rpg_rpv(n) { return Math.floor(n / this.metrics.voronoiClusterSize); }
+
+    // 3 fonnction de conversion inverse des 3 précédentes
+    rpt_rpe(n) { return n * this.metrics.tileSize; }
+    rpg_rpt(n) { return n * this.metrics.voronoiCellSize; }
+    rpv_rpg(n) { return n * this.metrics.voronoiClusterSize; }
+
+    /**
+     * Pour un germe donné, calcule la position réelle en ajoutant des offset aléatoire et des décalage
+     * un ligne sur deux pour donner des motif heagonaux
      * @param x_rpg {number}
      * @param y_rpg {number}
      * @return {x, y} RPT
@@ -85,10 +127,11 @@ class Cartography {
 
     /**
      * Calcule le cluster voronoi x, y
-     * @param x_rpv {number} coordonnées rpv
+     * @param x_rpv {number} coordonnées rpv du cluster
      * @param y_rpv {number}
+     * @return {Voronoi}
      */
-    getVoronoiCluster(x_rpv, y_rpv) {
+    computeVoronoiCluster(x_rpv, y_rpv) {
         const m = this.metrics;
         const v = new Voronoi();
         const VOR_CLUSTER_SIZE_RPG = m.voronoiClusterSize;
@@ -143,64 +186,30 @@ class Cartography {
     }
 
     /**
-     * Transforme un rectangle en carré
-     * @param w {number}
-     * @param h {number}
-     * @private
-     * @return {n, x, y}
+     * génération d'un continent avec le bruit de Perlin
+     * @param map
+     * @param size {number} taille de la cellule renfermant le continent
+     * @param seed {number}
+     * @returns {*}
      */
-    _resquare(w, h) {
-        const size = Math.max(w, h);
-        const xOfs = (size - w) >> 1;
-        const yOfs = (size - h) >> 1;
-        return {xOfs, yOfs, size};
-    }
+    computeContinentalPerlinNoise(map, size, seed) {
+        this._rand.seed = seed;
 
-    _createArray2D (w, h) {
-        const a = [];
-        for (let y = 0; y < h; ++y) {
-            const r = [];
-            for (let x = 0; x < w; ++x) {
-                r.push(-1);
-            }
-            a.push(r);
-        }
-        return a;
-    }
-
-    static generateCellWhiteNoise(w, h, rand) {
-        let r, a = [];
-        for (let x, y = 0; y < h; ++y) {
-            r = [];
-            for (x = 0; x < w; ++x) {
-                r[x] = rand(x, y);
-            }
-            a[y] = r;
-        }
-        return a;
-    }
-
-
-    computeContinentalPerlinNoise(map, size, hash) {
-        this._rand.seed = hash;
-
-        const wn = Cartography.generateCellWhiteNoise(size, size, (x, y) => {
+        const wn = Tools2D.createArray2D(size, size, (x, y) => {
+            // bruit initial
             const f = this._rand.rand();
-            switch (hash % 4) {
-                case 0: // halved
+            switch (seed % 6) {
+                case 0: // les altitudes sont divisée par deux
                     return f / 2;
 
-                case 1: // rounded
+                case 1: // les altitude sont convesifiées
+                case 2: // les altitude sont convesifiées
+                case 3: // les altitude sont convesifiées
+                case 4:
                     return Math.sqrt(f);
 
-                case 2: // rounded
+                case 5: // les altitude sont concavifiées
                     return f * f;
-
-                case 3: // rounded
-                    return f * f * f;
-
-                case 4: // rounded
-                    return f * f * f * f;
 
                 default:
                     return f;
@@ -211,58 +220,146 @@ class Cartography {
     }
 
     /**
+     * Transforme un rectangle de dimension quelconque en carré (prend la plus grande dimension comme nouvelle dimension du carré)
+     * @param w {number} largeur
+     * @param h {number} hauteur
+     * @private
+     * @return {{xOfs, yOfs, size}} nouvelle taille (size) ainsi que les offset du rectangle dans le nouveau carré
+     */
+    static _resquare(w, h) {
+        const size = Math.max(w, h);
+        const xOfs = (size - w) >> 1;
+        const yOfs = (size - h) >> 1;
+        return {xOfs, yOfs, size};
+    }
+
+    /**
      * Calcule une height map associée à la cellule de voronoi spécifée
      * cette heightmap est la base du relief de l'île qui sera générée dans cette cellule
      */
-    computeBaseHeightMap(x_rpv, y_rpv) {
+    computeVoronoiHeightMap(x_rpv, y_rpv) {
         let oStructure = this._cacheVoronoi.load(x_rpv, y_rpv);
         if (oStructure !== null) {
             return oStructure;
         }
-        const vor = this.getVoronoiCluster(x_rpv, y_rpv);
-        oStructure = {
-            maps: []
-        };
+        const vor = this.computeVoronoiCluster(x_rpv, y_rpv);
+        const cells = [];
+        const tiles = {};
+
         // récupérer la liste des rectangles
         vor
             .germs
             .filter(g => g.interior)
-            .forEach(g => {
+            .forEach((g, germIndex) => {
                 const xStart = g.regions.inner[0].x;
                 const yStart = g.regions.inner[0].y;
-                const oSquare = this._resquare(g.regions.inner[1].x - xStart + 1, g.regions.inner[1].y - yStart + 1);
-                const aMap = this._createArray2D(oSquare.size, oSquare.size);
+                const oSquare = Cartography._resquare(g.regions.inner[1].x - xStart + 1, g.regions.inner[1].y - yStart + 1);
+                const aMap = Tools2D.createArray2D(oSquare.size, oSquare.size, () => -1);
+                const seed = pcghash(g.x, g.y, this.seed);
+                const t0x = this.rpg_rpt(g.x);
+                const t0y = this.rpg_rpt(g.y);
+
+
                 g.points.forEach(p => {
-                    aMap[p.y - yStart][p.x - xStart] = p.d;
+                    const x_rpt = p.x;
+                    const y_rpt = p.y;
+                    const sx_rpt = x_rpt.toString();
+                    const sy_rpt = y_rpt.toString();
+                    if (!(sy_rpt in tiles)) {
+                        tiles[sy_rpt] = {};
+                    }
+                    // coordonnée de la tuile dan s la heightmap locale
+                    // les coordonnée doivent etre local au voronoi
+                    const ox_rpt = x_rpt - xStart;
+                    const oy_rpt = y_rpt - yStart;
+                    aMap[oy_rpt][ox_rpt] = p.d;
+                    tiles[sy_rpt][sx_rpt] = { // cette structure permet de retrouver facilement la height map
+                        x: ox_rpt, // position relative de la tuile au voronoi
+                        y: oy_rpt,
+                        z: p.d,
+                        cell: germIndex,
+                        seed: pcghash(
+                            t0x + ox_rpt,
+                            t0y + oy_rpt,
+                            this.seed
+                        )
+                    };
+
+
                 });
-                const hash = pcghash(g.x, g.y, this.seed);
+
+                // il faut d'avoir avoir construit la map "aMap" avant de la perliniser
+                const heightmap = this.computeContinentalPerlinNoise(aMap, oSquare.size, seed);
+
+                // LAND CELL
                 const oCell = {
-                    size: oSquare.size,
-                    offset: {
+                    x: g.x,
+                    y: g.y,
+                    size: oSquare.size, // taille de la cellule (pour le rendu de perlin)
+                    offset: { // offset de la cellule voronoi à l'interieur de la cellule carrée du perlin
                         x: xStart,
                         y: yStart
                     },
-                    map: this.computeContinentalPerlinNoise(aMap, oSquare.size, hash),
-                    hash
+                    heightmap,
+                    seed // seed de base de cette cellule
                 };
-                oStructure.maps.push(oCell);
+
+                cells[germIndex] = oCell;
             });
+        oStructure = {cells, tiles};
         this._cacheVoronoi.store(x_rpv, y_rpv, oStructure);
         return oStructure;
     }
 
 
-    render() {
-        const view = this.view;
-        const viewPoints = view.points();
-        const x_rpt = this.rpe_rpt(view.position.x);
-        const y_rpt = this.rpe_rpt(view.position.y);
-        const x_rpv = this.rpg_rpv(this.rpt_rpg(x_rpt));
-        const y_rpv = this.rpg_rpv(this.rpt_rpg(y_rpt));
-        const vor = this.computeVoronoiCluster(x_rpv, y_rpv);
-        // pour chaque tuile contenue dans la view
-        const pVor = vor.getOnePoint(x_rpt, y_rpt);
-        console.log(x_rpt, y_rpt, pVor);
+    /**
+     * Extraction des donnée d'une tuile dans un voronoi cluster
+     * @param vorCluster {Voronoi} cluster dans lequel se trouve la tuile
+     * @param x_rpt {number} coordonnée X de la tuile
+     * @param y_rpt {number} coordonnée Y de la tuile
+     */
+    getVoronoiTile(vorCluster, x_rpt, y_rpt) {
+        const sx_rpt = x_rpt.toString();
+        const sy_rpt = y_rpt.toString();
+        const {cells, tiles} = vorCluster;
+        const tileRow = tiles[sy_rpt];
+        if (tileRow === undefined) {
+            throw new Error('this tile is not located in this voronoi cluster');
+        }
+        const tile = tileRow[sx_rpt];
+        if (tile === undefined) {
+            throw new Error('this tile is not located in this voronoi cluster');
+        }
+        return tile;
+    }
+
+    _cellFilterMinMax(base, value) {
+        if (base < 0.45) {
+            return base * value;
+        } else {
+            return Math.max(0, Math.min(0.99, 1.333333333 * (base - value / 4)));
+        }
+    }
+
+    computeTileHeightMap(vorCluster, x_rpt, y_rpt) {
+        const cells = vorCluster.cells;
+
+
+
+        // a partir du bruit généré par le tile generator on adjoin l'altitude de la tile
+        const heightmap = this._tileGenerator.generate(x_rpt, y_rpt, {
+            noise: (xi_rpt, yi_rpt, aNoise) => {
+                const oThisTile = this.getVoronoiTile(vorCluster, xi_rpt, yi_rpt);
+                const hm = cells[oThisTile.cell].heightmap;
+                const base = hm[oThisTile.y][oThisTile.x];
+                Tools2D.walk2D(aNoise, (x, y, value) => this._cellFilterMinMax(base, value));
+                return aNoise;
+            }
+        });
+
+        return {
+            heightmap
+        };
     }
 
 }

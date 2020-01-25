@@ -5,7 +5,7 @@
  * used for predictable landscape generation
  */
 
-module.exports = class Random {
+class Random {
 
     constructor() {
         this._seed = Math.random();
@@ -112,4 +112,6 @@ module.exports = class Random {
         }
         return r;
     }
-};
+}
+
+export default Random;

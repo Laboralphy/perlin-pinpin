@@ -5,11 +5,21 @@ import Rainbow from "./libs/rainbow";
 import PixelProcessor from "./libs/pixel-processor";
 
 
+// const COLORS = Rainbow.gradient({
+// 	0: '#006',
+// 	30: 'blue',
+// 	45: 'cyan',
+// 	50: 'yellow',
+// 	75: 'green',
+// 	95: 'gray',
+// 	100: 'white'
+// }).map(c => Rainbow.parse(c));
+
 const COLORS = Rainbow.gradient({
 	0: '#006',
-	15: 'blue',
-	20: 'cyan',
-	25: 'yellow',
+	30: 'blue',
+	45: 'cyan',
+	50: 'yellow',
 	75: 'green',
 	95: 'gray',
 	100: 'white'
@@ -40,15 +50,14 @@ async function drawCells(context, v) {
 function drawStructure(structure) {
 	const oCanvas = document.querySelector('canvas');
 	const oContext = oCanvas.getContext('2d');
-
-	structure.maps.forEach(m => {
+	console.log(structure);
+	structure.cells.forEach(m => {
 		const cvs = document.createElement('canvas');
 		cvs.width = cvs.height = m.size;
 		const ctx = cvs.getContext('2d');
 		PixelProcessor.process(cvs, pp => {
-			const fHeight = m.map[pp.y][pp.x];
+			const fHeight = m.heightmap[pp.y][pp.x];
 			let oColor = COLORS[Math.min(COLORS.length - 1, fHeight * COLORS.length | 0)];
-			//pp.color.r =pp.color.g =pp.color.b =pp.color.a = 255;
 			if (fHeight < 0) {
 				pp.color.a = 0;
 			} else {
@@ -62,6 +71,28 @@ function drawStructure(structure) {
 	});
 }
 
+
+function createTileCanvas(heightmap) {
+	const cvs = document.createElement('canvas');
+	cvs.width = cvs.height = heightmap.length;
+	const ctx = cvs.getContext('2d');
+	PixelProcessor.process(cvs, pp => {
+		const fHeight = heightmap[pp.y][pp.x];
+		let oColor = COLORS[Math.min(COLORS.length - 1, fHeight * COLORS.length | 0)];
+		if (fHeight < 0) {
+			pp.color.a = 0;
+		} else {
+			pp.color.r = oColor.r;
+			pp.color.g = oColor.g;
+			pp.color.b = oColor.b;
+			pp.color.a = 255;
+		}
+	});
+	return cvs;
+}
+
+
+
 async function runCarto() {
 	const oCanvas = document.querySelector('canvas');
 	const oContext = oCanvas.getContext('2d');
@@ -74,57 +105,29 @@ async function runCarto() {
 	c.metrics.voronoiCellSize = 25;
 	c.metrics.voronoiClusterSize = 4;
 
-	let structure = c.computeBaseHeightMap(0, 0);
+	let structure = c.computeVoronoiHeightMap(0, 1);
 
 	drawStructure(structure);
 
-	structure = c.computeBaseHeightMap(1, 0);
-
-	drawStructure(structure);
-
-	structure = c.computeBaseHeightMap(1, 1);
-
-	drawStructure(structure);
-
-	structure = c.computeBaseHeightMap(0, 1);
-
-	drawStructure(structure);
-
-
-
-	/*
-	structure.maps.forEach(m => {
-		const cvs = document.createElement('canvas');
-		cvs.width = cvs.height = m.size;
-		const ctx = cvs.getContext('2d');
-		PixelProcessor.process(cvs, pp => {
-			const fHeight = m.map[pp.y][pp.x];
-			pp.color.r = pp.color.g = pp.color.b = pp.color.a = fHeight * 255 | 0;
+	const drawTile = (xTile, yTile, xCanvas, yCanvas) => new Promise(resolve => {
+		const {heightmap} = c.computeTileHeightMap(structure, xTile, yTile);
+		const cvs = createTileCanvas(heightmap);
+		requestAnimationFrame(() => {
+			oContext.drawImage(cvs, xCanvas, yCanvas);
+			resolve(true);
 		});
-		ctx.drawImage(cvs, m.offset.x, m.offset.y);
-		ctx.strokeStyle = 'rgba(255, 128, 128, 0.5)';
-		ctx.strokeRect(0, 0, m.size, m.size);
 	});
 
-	 */
+	oCanvas.addEventListener('click', async oEvent => {
+		const x = oEvent.offsetX;
+		const y = oEvent.offsetY;
 
-
-	/*
-
-	await renderView(c, 2, 0);
-	await renderView(c, 2, 1);
-	await renderView(c, 3, 0);
-	await renderView(c, 3, 1);
-	await renderView(c, 4, 0);
-	await renderView(c, 4, 1);
-	await renderView(c, 5, 0);
-	await renderView(c, 5, 1);
-	await renderView(c, 6, 0);
-	await renderView(c, 6, 1);
-
-	 */
-
-
+		for (let yi = -2; yi <= 3; ++yi) {
+			for (let xi = -3; xi <= 3; ++xi) {
+				await drawTile(x + xi, y + yi, xi * 128 + 512 , yi * 128 + 256);
+			}
+		}
+	});
 }
 
 

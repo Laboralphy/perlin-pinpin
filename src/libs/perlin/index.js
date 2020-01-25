@@ -196,6 +196,7 @@ class Perlin {
 		}));
 		return data;
 	}
+
 }
 
 export default Perlin;
