@@ -13,7 +13,8 @@ class TileGenerator {
         cache = 64,
         seed = 0,
         size = 128,
-        octaves = 8
+        octaves = 8,
+        physicGridSize = 16
     }) {
         this._cache = {
             wn: new Cache2D({size: cache}),
@@ -24,6 +25,7 @@ class TileGenerator {
         this._size = size;
         this._octaves = octaves;
         this._seed = seed;
+        this._physicGridSize = physicGridSize;
     }
 
     get rand() {
@@ -234,11 +236,11 @@ class TileGenerator {
         if (!!t) {
             return t;
         }
-        const heightmap = this.generateHeighMap(x, y, callbacks);
-        const physicmap = this.buildPhysicMap(heightmap, 16);
+        const heightMap = this.generateHeighMap(x, y, callbacks);
+        const physicMap = this.buildPhysicMap(heightMap, this._physicGridSize);
         t = {
-            heightmap,
-            physicmap
+            heightMap,
+            physicMap
         };
         this._cache.t.store(x, y, t);
         return t;

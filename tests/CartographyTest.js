@@ -1,4 +1,4 @@
-const Cartography = require('../src/libs/cartography').default;
+const Cartography = require('../src/libs/cartography/Cartography').default;
 
 function createTypicalCartography() {
     const c = new Cartography();
