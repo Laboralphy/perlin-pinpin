@@ -16,7 +16,8 @@ class TileGenerator {
         seed = 0,
         size = 128,
         octaves = 8,
-        physicGridSize = 16
+        physicGridSize = 16,
+        names
     }) {
         this._cache = {
             wn: new Cache2D({size: cache}),

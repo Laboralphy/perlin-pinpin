@@ -1,4 +1,4 @@
-const Cartography = require('../src/libs/cartography/Cartography').default;
+const Cartography = require('../src/libs/cartography/WorldGenerator').WorldGenerator;
 
 function createTypicalCartography() {
     const c = new Cartography();

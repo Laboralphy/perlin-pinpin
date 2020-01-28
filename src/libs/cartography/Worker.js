@@ -1,29 +1,31 @@
-import Cartography from './Cartography';
+import WorldGenerator from './WorldGenerator';
 import Webworkio from 'webworkio';
-import Names from '../names';
 import {fetchJSON} from'../fetch-json';
+import Names from '../names';
 
 class Worker {
     async actionInit(options) {
+
         const palette = await fetchJSON(options.palette);
         const names = await fetchJSON(options.names);
-        await Names.setLists({ towns: names });
-        this._cartography = new Cartography({
+
+        this._wg = new WorldGenerator({
             seed: options.seed,
             palette,
             cache: 256,
             tileSize: 128,
             vorCellSize: 25,
-            vorClusterSize: 4
+            vorClusterSize: 4,
+            names
         });
     }
 
     actionOptions(options) {
-
+        console.log('worker options', options);
     }
 
     constructor() {
-        this._cartography = null;
+        this._wg = null;
         let wwio = new Webworkio();
         wwio.worker();
 
@@ -33,11 +35,11 @@ class Worker {
         });
 
         wwio.on('options', (options) => {
-            this._cartography.options(options);
+            this.actionOptions(options);
         });
 
         wwio.on('tile', ({x, y}, cb) => {
-            cb({ tile: this._cartography.computeTile(x, y) });
+            cb({ tile: this._wg.computeTile(x, y) });
         });
 
         this._wwio = wwio;

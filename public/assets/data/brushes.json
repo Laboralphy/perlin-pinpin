@@ -1,0 +1,26 @@
+[
+  {
+    "type": "brush",
+    "code": 11,
+    "src": "assets/graphics/sceneries/s-wave-1.png",
+    "description": "wave, painted at sea level"
+  },
+  {
+    "type": "brush",
+    "code": 23,
+    "src": "assets/graphics/sceneries/s-grass-1.png",
+    "description": "plain, grass, painted just above the sea-shore"
+  },
+  {
+    "type": "brush",
+    "code": 33,
+    "src": "assets/graphics/sceneries/s-tree-1.png",
+    "description": "tree, temperate area, painted near mountains"
+  },
+  {
+    "type": "brush",
+    "code": 55,
+    "src": "assets/graphics/sceneries/s-mountain-1.png",
+    "description": "mountain top"
+  }
+]

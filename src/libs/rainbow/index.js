@@ -370,6 +370,6 @@ class Rainbow {
 		c.r = c.g = c.b = n;
 		return c;
 	}
-};
+}
 
 export default Rainbow;

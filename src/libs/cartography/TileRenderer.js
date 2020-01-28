@@ -18,15 +18,21 @@ class TileRenderer {
         size
     }) {
         this._canvas = CanvasHelper.createCanvas(size, size);
-        this._sceneries = {};
+        this._brushes = {};
     }
 
     /**
      * Chargement des sceneries
      */
-    async loadSceneries(sceneries) {
-        this._sceneries = await ImageLoader.load(sceneries);
-        return this._sceneries;
+    async loadBrushes(brushes) {
+        // brushes
+        for (let i = 0, l = brushes.length; i < l; ++i) {
+            const s = brushes[i];
+            if (s.type === 'brush') {
+                this._brushes[s.code] = await ImageLoader.load(s.src);
+            }
+        }
+        return this._brushes;
     }
 
     get canvas () {
@@ -49,8 +55,8 @@ class TileRenderer {
         physicMap.forEach((row, y) => row.forEach((cell, x) => {
             if ((x & 1) === (y & 1)) {
                 const sScen = 's' + cell;
-                if (sScen in this._sceneries) {
-                    ctx.drawImage(this._sceneries[sScen], x * physicGridSize, y * physicGridSize);
+                if (sScen in this._brushes) {
+                    ctx.drawImage(this._brushes[sScen], x * physicGridSize, y * physicGridSize);
                 }
             }
         }));

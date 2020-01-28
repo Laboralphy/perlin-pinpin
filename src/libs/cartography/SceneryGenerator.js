@@ -10,11 +10,6 @@ const PHYS_FOREST = 33;
 const PHYS_PEAK = 55;
 
 
-Names.loadLists({
-    towns: 'assets/data/towns-fr.json'
-});
-
-
 const PATTERNS = {
     port: {
         size4east: [

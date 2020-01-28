@@ -7,10 +7,11 @@ import Random from "../random";
 import * as Tools2D from '../tools2d';
 import TileGenerator from "./TileGenerator";
 import Names from '../names';
+import Rainbow from "../rainbow";
 
 const {Vector, View, Point} = Geometry;
 
-class Cartography {
+class WorldGenerator {
 
     /*
 
@@ -35,7 +36,7 @@ class Cartography {
             vorCellSize = 50,
             vorClusterSize = 6,
             physicGridSize = 16,
-            names = ''
+            names
         }) {
         this._view = new View();
         this._masterSeed = seed;
@@ -63,12 +64,38 @@ class Cartography {
             size: tileSize,
             octaves: 8,
             cache,
-            physicGridSize
+            physicGridSize,
+            names
         });
 
-        this._palette = palette;
-        Names.loadLists()
+        this._palette = [];
+        this.options({
+            palette
+        });
     }
+
+    /**
+     * permet de changer quelques options
+     * - taille des caches
+     * - palette de couleur
+     * @param options
+     */
+    options(options) {
+        // cache de tiles
+        if ('cache' in options) {
+            this._cache.tile.size = options.cache;
+        }
+        if ('palette' in options) {
+            const oPalette = {};
+            options.palette.forEach(p => oPalette[p.altitude] = p.color);
+            this._palette = Rainbow
+                .gradient(oPalette)
+                .map(x => Rainbow.parse(x))
+                .map(x => x.r | x.g << 8 | x.b << 16 | 0xFF000000);
+        }
+    }
+
+
 
 
     /**
@@ -275,7 +302,7 @@ class Cartography {
             .forEach((g, germIndex) => {
                 const xStart = g.regions.inner[0].x;
                 const yStart = g.regions.inner[0].y;
-                const oSquare = Cartography._resquare(g.regions.inner[1].x - xStart + 1, g.regions.inner[1].y - yStart + 1);
+                const oSquare = WorldGenerator._resquare(g.regions.inner[1].x - xStart + 1, g.regions.inner[1].y - yStart + 1);
                 const aMap = Tools2D.createArray2D(oSquare.size, oSquare.size, () => -1);
                 const seed = pcghash(g.x, g.y, this.seed);
                 const t0x = this.rpg_rpt(g.x);
@@ -403,4 +430,4 @@ class Cartography {
     }
 }
 
-export default Cartography;
+export default WorldGenerator;
