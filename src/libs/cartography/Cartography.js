@@ -6,6 +6,7 @@ import Perlin from "../perlin";
 import Random from "../random";
 import * as Tools2D from '../tools2d';
 import TileGenerator from "./TileGenerator";
+import Names from '../names';
 
 const {Vector, View, Point} = Geometry;
 
@@ -33,7 +34,8 @@ class Cartography {
             tileSize = 128,
             vorCellSize = 50,
             vorClusterSize = 6,
-            physicGridSize = 16
+            physicGridSize = 16,
+            names = ''
         }) {
         this._view = new View();
         this._masterSeed = seed;
@@ -65,6 +67,7 @@ class Cartography {
         });
 
         this._palette = palette;
+        Names.loadLists()
     }
 
 

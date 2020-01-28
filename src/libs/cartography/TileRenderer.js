@@ -48,7 +48,7 @@ class TileRenderer {
         // ajout des brushes
         physicMap.forEach((row, y) => row.forEach((cell, x) => {
             if ((x & 1) === (y & 1)) {
-                const sScen = 's' + cell.type;
+                const sScen = 's' + cell;
                 if (sScen in this._sceneries) {
                     ctx.drawImage(this._sceneries[sScen], x * physicGridSize, y * physicGridSize);
                 }

@@ -2,6 +2,8 @@ import Cache2D from "../cache2d";
 import * as Tools2D from "../tools2d";
 import Random from "../random";
 import Perlin from "../perlin";
+import SceneryGenerator from "./SceneryGenerator";
+
 
 /**
  * cette classe génère des height map à partir de bruit
@@ -26,6 +28,7 @@ class TileGenerator {
         this._octaves = octaves;
         this._seed = seed;
         this._physicGridSize = physicGridSize;
+        this._sceneryGenerator = new SceneryGenerator();
     }
 
     get rand() {
@@ -237,7 +240,12 @@ class TileGenerator {
             return t;
         }
         const heightMap = this.generateHeighMap(x, y, callbacks);
-        const physicMap = this.buildPhysicMap(heightMap, this._physicGridSize);
+        const physicMap = Tools2D
+            .map2D(
+                this.buildPhysicMap(heightMap, this._physicGridSize),
+                (x, y, cell) => cell.type
+            );
+        const sceneries = this._sceneryGenerator.generate(this._seed, x, y, physicMap);
         t = {
             heightMap,
             physicMap
