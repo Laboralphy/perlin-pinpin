@@ -4,19 +4,36 @@ import {fetchJSON} from'../fetch-json';
 import Names from '../names';
 
 class Worker {
-    async actionInit(options) {
+    /**
+     * Initialisation des options
+     * palette {url}
+     * names {url}
+     * seed {number}
+     *
+     * @param options
+     * @returns {Promise<void>}
+     */
+    async actionInit({
+        palette,
+        names,
+        seed,
+        cache,
+        tileSize,
+        vorCellSize,
+        vorClusterSize
+    }) {
 
-        const palette = await fetchJSON(options.palette);
-        const names = await fetchJSON(options.names);
+        const aPalette = await fetchJSON(palette);
+        const aNames = await fetchJSON(names);
 
         this._wg = new WorldGenerator({
-            seed: options.seed,
-            palette,
-            cache: 256,
-            tileSize: 128,
-            vorCellSize: 25,
-            vorClusterSize: 4,
-            names
+            seed,
+            palette: aPalette,
+            cache,
+            tileSize,
+            vorCellSize,
+            vorClusterSize,
+            names: aNames
         });
     }
 
