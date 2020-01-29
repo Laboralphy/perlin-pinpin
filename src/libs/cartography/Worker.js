@@ -4,6 +4,11 @@ import {fetchJSON} from'../fetch-json';
 import Names from '../names';
 
 class Worker {
+
+    log(...args) {
+        console.log('[WW]', ...args);
+    }
+
     /**
      * Initialisation des options
      * palette {url}
@@ -22,19 +27,22 @@ class Worker {
         vorCellSize,
         vorClusterSize
     }) {
+      this.log('fetching palette', palette);
+      const aPalette = await fetchJSON(palette);
+      this.log('fetching names', names);
+      const aNames = await fetchJSON(names);
 
-        const aPalette = await fetchJSON(palette);
-        const aNames = await fetchJSON(names);
-
-        this._wg = new WorldGenerator({
-            seed,
-            palette: aPalette,
-            cache,
-            tileSize,
-            vorCellSize,
-            vorClusterSize,
-            names: aNames
-        });
+      this.log('creating world generator');
+      this._wg = new WorldGenerator({
+        seed,
+        palette: aPalette,
+        cache,
+        tileSize,
+        vorCellSize,
+        vorClusterSize,
+        names: aNames
+      });
+      return true;
     }
 
     actionOptions(options) {
@@ -45,10 +53,13 @@ class Worker {
         this._wg = null;
         let wwio = new Webworkio();
         wwio.worker();
-
         wwio.on('init', async (options, cb) => {
-            this.actionInit(options);
-            cb(true);
+          try {
+            await this.actionInit(options);
+            cb({status: 'done'});
+          } catch (e) {
+            cb({status: 'error', error: e.message});
+          }
         });
 
         wwio.on('options', (options) => {

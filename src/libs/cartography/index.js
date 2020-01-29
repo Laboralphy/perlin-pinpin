@@ -46,6 +46,14 @@ class Service {
         return this._tr.loadBrushes(await fetchJSON(this._worldDef.brushes));
     }
 
+    checkResponse(response, resolve, reject) {
+        if (response.status === 'error') {
+            reject(new Error('web worker error : ' + response.error));
+        } else {
+            resolve(response);
+        }
+    }
+
     async start() {
         const wgd = this._worldDef;
         this.log('starting service');
@@ -54,6 +62,7 @@ class Service {
         return new Promise((resolve, reject) => {
             this._wwio = new Webworkio();
             this._wwio.worker(wgd.worker);
+            this.log('web worker instance created', wgd.worker);
             this._wwio.emit('init', {
                 seed: wgd.seed,
                 vorCellSize: wgd.cellSize,
@@ -62,9 +71,8 @@ class Service {
                 palette: wgd.palette,
                 cache: wgd.cache,
                 names: wgd.names
-            }, status => {
-                this.log('service started with status :', status);
-                resolve(status);
+            }, response => {
+                this.checkResponse(response, resolve, reject);
             });
         });
     }

@@ -1,0 +1,12 @@
+#!/bin/bash
+doSync() {
+    local sPath=/var/www/html/perlin-pinpin
+    rsync -avz --delete dist $sPath
+    rsync -avz --delete public $sPath
+}
+
+doSync
+while inotifywait -e modify,create,delete,move dist
+do
+    doSync
+done
