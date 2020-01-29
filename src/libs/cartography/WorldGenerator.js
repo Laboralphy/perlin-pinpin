@@ -36,13 +36,15 @@ class WorldGenerator {
             vorCellSize = 50,
             vorClusterSize = 6,
             physicGridSize = 16,
-            names
+            names,
+            scale = 1
         }) {
         this._view = new View();
         this._masterSeed = seed;
         this._rand = new Random();
         this._rand.seed = seed;
         this._physicGridSize = physicGridSize;
+        this._scale = scale;
 
         this._metrics = {
             tileSize, // nombre de pixel de coté composant chaque tuile
@@ -65,7 +67,8 @@ class WorldGenerator {
             octaves: 8,
             cache,
             physicGridSize,
-            names
+            names,
+            scale
         });
 
         this._palette = [];

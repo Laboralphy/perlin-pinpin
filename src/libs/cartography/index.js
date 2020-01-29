@@ -16,8 +16,9 @@ class Service {
         tileSize = 128, // taille des tuile de la carte
         palette,    // palette de couleurs
         cache = 64, // taille du cache de tuiles
-        preload = 2, // nombre de tuile a précharger autour de la zone de vue
+        preload = 0, // nombre de tuile a précharger autour de la zone de vue
         progress = null, // fonction callback appelée quand les tuiles se chargent
+        scale = 1,  // zoom de tuiles
         names // nom des villes
     }) {
         this._worldDef = {
@@ -30,6 +31,7 @@ class Service {
             preload,
             progress,
             brushes,
+            scale,
             names
         };
         this._view = new Vector();
@@ -37,18 +39,22 @@ class Service {
             size: cache
         });
         this._tr = new TileRenderer({
-            size: tileSize
+            scale
         });
         this._fetching = false;
     }
 
-    async loadBrushes() {
-        return this._tr.loadBrushes(await fetchJSON(this._worldDef.brushes));
+    get fetching() {
+        return this._fetching;
+    }
+
+    async loadBrushes(sURL) {
+        return this._tr.loadBrushes(await fetchJSON(sURL));
     }
 
     checkResponse(response, resolve, reject) {
         if (response.status === 'error') {
-            reject(new Error('web worker error : ' + response.error));
+            reject(new Error('web worker error: ' + response.error));
         } else {
             resolve(response);
         }
@@ -57,7 +63,7 @@ class Service {
     async start() {
         const wgd = this._worldDef;
         this.log('starting service');
-        await this._tr.loadBrushes(wgd.brushes);
+        await this.loadBrushes(wgd.brushes);
         this.log('brushes loaded');
         return new Promise((resolve, reject) => {
             this._wwio = new Webworkio();
@@ -70,7 +76,8 @@ class Service {
                 tileSize: wgd.tileSize,
                 palette: wgd.palette,
                 cache: wgd.cache,
-                names: wgd.names
+                names: wgd.names,
+                scale: wgd.scale
             }, response => {
                 this.checkResponse(response, resolve, reject);
             });
@@ -83,7 +90,7 @@ class Service {
     }
 
     progress(n100) {
-        this.log('progress', n100);
+        this.log('progress', n100 + '%');
         if (typeof this._worldDef.progress === 'function') {
             this._worldDef.progress(n100);
         }
@@ -95,16 +102,16 @@ class Service {
 
     adjustCacheSize(w, h) {
         return new Promise(resolve => {
-            let cellSize = this._worldDef.tileSize;
-            let m = Service.getViewPointMetrics(this._view.x, this._view.y, w, h, cellSize, this._worldDef.preload);
+            let tileSize = this._worldDef.tileSize;
+            let m = Service.getViewPointMetrics(this._view.x, this._view.y, w, h, tileSize, this._worldDef.preload);
             let nNewSize = (m.yTo - m.yFrom + 2) * (m.xTo - m.xFrom + 2) * 2;
             if (nNewSize !== this._worldDef.cache) {
                 this._worldDef.cache = nNewSize;
                 this._cache.size = nNewSize;
-                /*this._wwio.emit('options', {
+                this._wwio.emit('options', {
                     cacheSize: nNewSize
-                }, () => resolve(true));*/
-                this.log('using canvas ( width', w, ', height', h, ') view', m, 'adjusting cache size :', nNewSize);
+                }, () => resolve(true));
+                this.log('using canvas ( width', w, ', height', h, ')', 'adjusting cache size :', nNewSize);
             } else {
                 resolve(true);
             }
@@ -118,26 +125,26 @@ class Service {
      * @param y {number}
      * @param width {number} taille du viewpoint
      * @param height {number}
-     * @param cellSize {number} taille d'une tile
+     * @param tileSize {number} taille d'une tile
      * @param nBorder {number} taille de la bordure de securité
      * @return {{xFrom: number, yFrom: number, xTo: *, yTo: *, xOfs: number, yOfs: number}}
      */
-    static getViewPointMetrics(x, y, width, height, cellSize, nBorder) {
-        let x0 = x - (width >> 1);
-        let y0 = y - (height >> 1);
-        let xFrom = Math.floor(x0 / cellSize) - nBorder;
-        let yFrom = Math.floor(y0 / cellSize) - nBorder;
-        let xTo = Math.floor((x0 + width - 1) / cellSize) + nBorder;
-        let yTo = Math.floor((y0 + height - 1) / cellSize) + nBorder;
-        let xOfs = mod(x0, cellSize);
-        let yOfs = mod(y0, cellSize);
+    static getViewPointMetrics(x, y, width, height, tileSize, nBorder) {
+        const x0 = x - (width >> 1);
+        const y0 = y - (height >> 1);
+        const xFrom = Math.floor(x0 / tileSize) - nBorder;
+        const yFrom = Math.floor(y0 / tileSize) - nBorder;
+        const xTo = Math.floor((x0 + width - 1) / tileSize) + nBorder;
+        const yTo = Math.floor((y0 + height - 1) / tileSize) + nBorder;
+        const xOfs = mod(x0, tileSize);
+        const yOfs = mod(y0, tileSize);
         return {
             xFrom,
             yFrom,
             xTo,
             yTo,
-            xOfs: -xOfs - nBorder * cellSize,
-            yOfs: -yOfs - nBorder * cellSize
+            xOfs: -xOfs - nBorder * tileSize,
+            yOfs: -yOfs - nBorder * tileSize
         };
     }
 
@@ -151,7 +158,7 @@ class Service {
             oTile.setAttribute('data-painted', '0');
             this._cache.store(x, y, oTile);
             this._wwio.emit('tile', {x, y}, result => {
-                this._tr.render(result);
+                this._tr.render(result, oTile);
                 oTile.setAttribute('data-painted', '1');
                 resolve(oTile);
             });
@@ -160,8 +167,8 @@ class Service {
 
     async preloadTiles(x, y, w, h) {
         let tStart = performance.now();
-        let cellSize = this._worldDef.cellSize;
-        let m = Service.getViewPointMetrics(x, y, w, h, cellSize, this._worldDef.preload);
+        let tileSize = this._worldDef.tileSize;
+        let m = Service.getViewPointMetrics(x, y, w, h, tileSize, this._worldDef.preload);
         let yTilePix = 0;
         let nTileCount = (m.yTo - m.yFrom + 1) * (m.xTo - m.xFrom + 1);
         let iTile = 0;
@@ -179,10 +186,10 @@ class Service {
                     wt = await this.fetchTile(xTile, yTile);
                 }
                 // si la tile est partiellement visible il faut la dessiner
-                xTilePix += cellSize;
+                xTilePix += tileSize;
                 ++iTile;
             }
-            yTilePix += cellSize;
+            yTilePix += tileSize;
         }
         if (nTileFetched) {
             n100 = 100;
@@ -212,7 +219,7 @@ class Service {
             this._fetching = true;
             this.preloadTiles(x, y, oCanvas.width, oCanvas.height).then(({tileFetched, timeElapsed}) => {
                 this._fetching = false;
-                if (tileFetched) {
+                if (tileFetched > 0) {
                     this.log('fetched', tileFetched, 'tiles in', timeElapsed, 's.', (tileFetched * 10 / timeElapsed | 0) / 10, 'tiles/s');
                 }
                 if (bRender) {
@@ -231,8 +238,8 @@ class Service {
         const oCanvas = this._viewedCanvas, x = this._viewedPosition.x, y = this._viewedPosition.y;
         let w = oCanvas.width;
         let h = oCanvas.height;
-        let cellSize = this._worldDef.cellSize;
-        let m = Service.getViewPointMetrics(x, y, w, h, cellSize, 0);
+        let tileSize = this._worldDef.tileSize;
+        let m = Service.getViewPointMetrics(x, y, w, h, tileSize, 0);
         let yTilePix = 0;
         let ctx = oCanvas.getContext('2d');
         for (let yTile = m.yFrom; yTile <= m.yTo; ++yTile) {
@@ -246,9 +253,9 @@ class Service {
                         ctx.drawImage(wt, xScreen, yScreen);
                     }
                 }
-                xTilePix += cellSize;
+                xTilePix += tileSize;
             }
-            yTilePix += cellSize;
+            yTilePix += tileSize;
         }
     }
 }

@@ -17,15 +17,18 @@ class TileGenerator {
         size = 128,
         octaves = 8,
         physicGridSize = 16,
-        names
+        names,
+        scale
     }) {
         this._cache = {
             wn: new Cache2D({size: cache}),
             pn: new Cache2D({size: cache}),
             t: new Cache2D({size: cache})
         };
+        this._scale = scale;
         this._rand = new Random();
         this._size = size;
+        this._scaledSize = size * scale | 0;
         this._octaves = octaves;
         this._seed = seed;
         this._physicGridSize = physicGridSize;
@@ -46,6 +49,7 @@ class TileGenerator {
 
     set size(value) {
         this._size = value;
+        this._scaledSize = this._size * this._scale;
     }
 
     get octaves() {
@@ -62,6 +66,15 @@ class TileGenerator {
 
     set seed(value) {
         this._seed = value;
+    }
+
+    get scale() {
+        return this._scale;
+    }
+
+    set scale(value) {
+        this._scale = value;
+        this._scaledSize = this._size * this._scale;
     }
 
     /**
@@ -246,7 +259,7 @@ class TileGenerator {
                 this.buildPhysicMap(heightMap, this._physicGridSize),
                 (x, y, cell) => cell.type
             );
-        const sceneries = this._sceneryGenerator.generate(this._seed, x, y, physicMap);
+        //const sceneries = this._sceneryGenerator.generate(this._seed, x, y, physicMap);
         t = {
             heightMap,
             physicMap

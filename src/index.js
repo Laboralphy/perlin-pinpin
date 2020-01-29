@@ -10,18 +10,49 @@ async function runCarto() {
 
 	const c = new Cartography({
 		seed: 0,
-		palette: 'assets/data/palette.json',
+		preload: 0,
+		palette: document.baseURI + 'assets/data/palette.json',
 		cellSize: 25,
 		tileSize: 128,
 		worker: '../dist/worker.js',
-		brushes: 'assets/data/brushes.json',
-		names: 'assets/data/town-fr.json'
+		brushes: document.baseURI + 'assets/data/brushes.json',
+		names: document.baseURI + 'assets/data/towns-fr.json'
 	});
 
-	const vView = new Vector(0, 0);
+	const vView = new Vector(1024, 0);
 
 	await c.start();
 	await c.view(oCanvas, vView,true);
+
+	document.addEventListener('keydown', event => {
+		let b = false;
+		console.log(event.key);
+		switch (event.key) {
+			case 'ArrowRight':
+				vView.x += 24;
+				b = true;
+				break;
+
+			case 'ArrowLeft':
+				vView.x -= 24;
+				b = true;
+				break;
+
+			case 'ArrowUp':
+				vView.y -= 24;
+				b = true;
+				break;
+
+			case 'ArrowDown':
+				vView.y += 24;
+				b = true;
+				break;
+		}
+		if (b) {
+			c.view(oCanvas, vView);
+			c.renderTiles();
+		}
+	})
 }
 
 function main() {

@@ -15,11 +15,13 @@ const PHYS_PEAK = 55;
 
 class TileRenderer {
     constructor({
-        size
+        scale = 1
     }) {
-        this._canvas = CanvasHelper.createCanvas(size, size);
         this._brushes = {};
+        this._scale = scale;
     }
+
+
 
     /**
      * Chargement des sceneries
@@ -32,16 +34,16 @@ class TileRenderer {
                 this._brushes[s.code] = await ImageLoader.load(s.src);
             }
         }
+        console.log('brushes', brushes, this._brushes);
         return this._brushes;
     }
 
-    get canvas () {
-        return this._canvas;
-    }
-
-    render(oTileData) {
+    render(oTileData, cvs = null) {
         const {colorMap, physicMap, physicGridSize} = oTileData;
-        const cvs = this._canvas;
+        if (!cvs) {
+            const size = colorMap.length;
+            cvs = CanvasHelper.createCanvas(size, size)
+        }
         const ctx = cvs.getContext('2d');
         PixelProcessor.process(cvs, pp => {
             const nColor = colorMap[pp.y][pp.x];
@@ -51,15 +53,19 @@ class TileRenderer {
             pp.color.b = oColor.b;
             pp.color.a = oColor.a;
         });
+        if (this._scale !== 1) {
+            cvs = CanvasHelper.cloneCanvas(cvs, this._scale);
+        }
         // ajout des brushes
         physicMap.forEach((row, y) => row.forEach((cell, x) => {
             if ((x & 1) === (y & 1)) {
-                const sScen = 's' + cell;
+                const sScen = cell;
                 if (sScen in this._brushes) {
                     ctx.drawImage(this._brushes[sScen], x * physicGridSize, y * physicGridSize);
                 }
             }
         }));
+        return cvs;
     }
 }
 

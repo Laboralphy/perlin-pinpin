@@ -80,22 +80,28 @@ class CanvasHelper {
 	/**
 	 * Clones a canvas into a new one
 	 * @param oCanvas {HTMLCanvasElement|Image} to be cloned
+	 * @param fScale {number}
 	 * @return  HTMLCanvasElement
 	 */
-	static cloneCanvas(oCanvas) {
+	static cloneCanvas(oCanvas, fScale = 1) {
 		let w, h, b;
 		if (CanvasHelper.isImage(oCanvas)) {
 			let oImage = oCanvas;
 			w = oImage.naturalWidth;
 			h = oImage.naturalHeight;
-			b = bDefaultImageSmoothing;
 		} else {
 			w = oCanvas.width;
 			h = oCanvas.height;
-			b = CanvasHelper.getImageSmoothing(oCanvas);
 		}
-		let c = CanvasHelper.createCanvas(w, h);
-		c.getContext('2d').drawImage(oCanvas, 0, 0);
+		const nw = w * fScale | 0;
+		const nh = h * fScale | 0;
+		const c = CanvasHelper.createCanvas(nw, nh);
+		const ctx = c.getContext('2d');
+		if (fScale === 1) {
+			ctx.drawImage(oCanvas, 0, 0);
+		} else {
+			ctx.drawImage(oCanvas, 0, 0, w, h, 0, 0, nw, nh);
+		}
 		return c;
 	}
 

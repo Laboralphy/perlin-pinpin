@@ -25,7 +25,8 @@ class Worker {
         cache,
         tileSize,
         vorCellSize,
-        vorClusterSize
+        vorClusterSize,
+        scale
     }) {
       this.log('fetching palette', palette);
       const aPalette = await fetchJSON(palette);
@@ -40,7 +41,8 @@ class Worker {
         tileSize,
         vorCellSize,
         vorClusterSize,
-        names: aNames
+        names: aNames,
+        scale
       });
       return true;
     }
@@ -67,7 +69,7 @@ class Worker {
         });
 
         wwio.on('tile', ({x, y}, cb) => {
-            cb({ tile: this._wg.computeTile(x, y) });
+            cb(this._wg.computeTile(x, y));
         });
 
         this._wwio = wwio;
