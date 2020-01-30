@@ -13,7 +13,7 @@ class Service {
         brushes,     // chemin des sceneries
         seed = 0, // graine aléatoire
         cellSize = 25, // taille des cellules voronoi (continents)
-        tileSize = 128, // taille des tuile de la carte
+        tileSize, // taille des tuile de la carte
         palette,    // palette de couleurs
         cache = 64, // taille du cache de tuiles
         preload = 0, // nombre de tuile a précharger autour de la zone de vue
@@ -38,9 +38,7 @@ class Service {
         this._cache = new Cache2D({
             size: cache
         });
-        this._tr = new TileRenderer({
-            scale
-        });
+        this._tr = new TileRenderer();
         this._fetching = false;
     }
 
@@ -148,13 +146,13 @@ class Service {
         };
     }
 
-
-
     async fetchTile(x, y) {
         return new Promise(resolve => {
             // verification en cache
-            const tileSize = this._worldDef.tileSize;
-            let oTile = CanvasHelper.createCanvas(tileSize, tileSize);
+            let oTile = CanvasHelper.createCanvas(
+                this._worldDef.tileSize,
+                this._worldDef.tileSize
+            );
             oTile.setAttribute('data-painted', '0');
             this._cache.store(x, y, oTile);
             this._wwio.emit('tile', {x, y}, result => {

@@ -32,7 +32,7 @@ class WorldGenerator {
             seed = 0,
             palette = null,
             cache = 64,
-            tileSize = 128,
+            tileSize,
             vorCellSize = 50,
             vorClusterSize = 6,
             physicGridSize = 16,
@@ -64,7 +64,6 @@ class WorldGenerator {
         this._tileGenerator = new TileGenerator({
             seed,
             size: tileSize,
-            octaves: 8,
             cache,
             physicGridSize,
             names,
@@ -387,7 +386,7 @@ class WorldGenerator {
         if (base < 0.45) {
             return base * value;
         } else {
-            return Math.max(0, Math.min(0.99, 1.333333333 * (base - value / 4)));
+            return Math.max(0, Math.min(0.999, 1.666 * (base - value / 4)));
         }
     }
 

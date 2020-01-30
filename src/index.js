@@ -13,10 +13,11 @@ async function runCarto() {
 		preload: 0,
 		palette: document.baseURI + 'assets/data/palette.json',
 		cellSize: 25,
-		tileSize: 128,
+		tileSize: 256,
 		worker: '../dist/worker.js',
 		brushes: document.baseURI + 'assets/data/brushes.json',
-		names: document.baseURI + 'assets/data/towns-fr.json'
+		names: document.baseURI + 'assets/data/towns-fr.json',
+		scale: 1
 	});
 
 	const vView = new Vector(1024, 0);

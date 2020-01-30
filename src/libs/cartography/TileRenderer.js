@@ -13,15 +13,14 @@ const PHYS_PLAIN = 23;
 const PHYS_FOREST = 33;
 const PHYS_PEAK = 55;
 
+const FONT_DEFINITION = 'italic 13px Times New Roman';
+
 class TileRenderer {
-    constructor({
-        scale = 1
-    }) {
+    constructor() {
         this._brushes = {};
-        this._scale = scale;
+        this._drawGrid = true;
+        this._drawCoords = true;
     }
-
-
 
     /**
      * Chargement des sceneries
@@ -38,14 +37,39 @@ class TileRenderer {
         return this._brushes;
     }
 
-    render(oTileData, cvs = null) {
-        const {colorMap, physicMap, physicGridSize} = oTileData;
-        if (!cvs) {
-            const size = colorMap.length;
-            cvs = CanvasHelper.createCanvas(size, size)
+    paintLinesCoordinates(tile, xCurs, yCurs) {
+        let ctx = tile.getContext('2d');
+        if (this._drawGrid) {
+            ctx.strokeStyle = 'rgba(57, 25, 7, 0.5)';
+            ctx.beginPath();
+            ctx.moveTo(0, tile.height - 1);
+            ctx.lineTo(0, 0);
+            ctx.lineTo(tile.width - 1, 0);
+            ctx.stroke();
         }
-        const ctx = cvs.getContext('2d');
-        PixelProcessor.process(cvs, pp => {
+        if (this._drawCoords) {
+            let sText;
+            ctx.font = FONT_DEFINITION;
+            ctx.textBaseline = 'top';
+            ctx.strokeStyle = '#efce8c';
+            ctx.fillStyle = 'rgba(57, 25, 7)';
+            sText = 'lat:  ' + yCurs.toString();
+            ctx.strokeText(sText, 25, 4);
+            ctx.fillText(sText, 25, 4);
+            sText = 'long:  ' + xCurs.toString();
+            ctx.save();
+            ctx.rotate(-Math.PI / 2);
+            ctx.strokeText(sText, -tile.width + 25, 4);
+            ctx.fillText(sText, -tile.width + 25, 4);
+            ctx.restore();
+        }
+    }
+
+
+    render(oTileData, cvs) {
+        const {colorMap, physicMap, physicGridSize} = oTileData;
+        const cvsColor = CanvasHelper.createCanvas(colorMap.length, colorMap.length);
+        PixelProcessor.process(cvsColor, pp => {
             const nColor = colorMap[pp.y][pp.x];
             let oColor = Rainbow.parse(nColor);
             pp.color.r = oColor.r;
@@ -53,10 +77,9 @@ class TileRenderer {
             pp.color.b = oColor.b;
             pp.color.a = oColor.a;
         });
-        if (this._scale !== 1) {
-            cvs = CanvasHelper.cloneCanvas(cvs, this._scale);
-        }
         // ajout des brushes
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(cvsColor, 0, 0, cvsColor.width, cvsColor.height, 0, 0, cvs.width, cvs.height);
         physicMap.forEach((row, y) => row.forEach((cell, x) => {
             if ((x & 1) === (y & 1)) {
                 const sScen = cell;
@@ -65,6 +88,7 @@ class TileRenderer {
                 }
             }
         }));
+        this.paintLinesCoordinates(cvs, oTileData.x, oTileData.y);
         return cvs;
     }
 }

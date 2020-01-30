@@ -3,66 +3,21 @@ const Random = require('../random');
 
 class Perlin {
 
-	constructor() {
-		this._size = 64;
-		this._width = 64;
-		this._height = 64;
-		this._octaves = 8;
-		this._interpolate = null;
-		this.interpolation('cosine');
-		this._seed = 1;
-	}
-
-	get seed() {
-		return this._seed;
-	}
-
-	set seed(v) {
-		this._seed = v;
-	}
-	
-	size(n) {
-		if (n === undefined) {
-			return this._size;
-		} else {
-			let i = 10;
-			while (i > 0) {
-				let i2 = 1 << i;
-				if (i2 === n) {
-					this._width = i2;
-					this._height = i2;
-					this._octaves = i;
-					this._size = n;
-					return this;
-				}
-				--i;
-			}
-			throw new Error('size must be a power of 2 between 2 and 1024');
-		}
-	}
-	
-	get width() {
-		return this._width;
-	}
-
-	get height() {
-		return this._height;
-	}
-	
-	get octaves() {
-		return this._octaves;
-	}
-
-
 	/**
-	 * Linear interpolation
-	 * @param x0 {number} minimum
-	 * @param x1 {number} maximum
-	 * @param alpha {number} value between 0 and 1
-	 * @return {number} float, interpolation result
+	 * for a given size, compute the best octave count
+	 * @param n {number} size (pixel}
+	 * @returns {number}
 	 */
-	static linearInterpolate(x0, x1, alpha) {
-		return x0 * (1 - alpha) + alpha * x1;
+	static computeOptimalOctaves(n) {
+		let i = 10;
+		while (i > 0) {
+			let i2 = 1 << i;
+			if (i2 <= n) {
+				break;
+			}
+			--i;
+		}
+		return i;
 	}
 
 	/**

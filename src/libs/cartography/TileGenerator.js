@@ -14,9 +14,8 @@ class TileGenerator {
     constructor ({
         cache = 64,
         seed = 0,
-        size = 128,
-        octaves = 8,
-        physicGridSize = 16,
+        size,
+        physicGridSize,
         names,
         scale
     }) {
@@ -25,14 +24,23 @@ class TileGenerator {
             pn: new Cache2D({size: cache}),
             t: new Cache2D({size: cache})
         };
-        this._scale = scale;
         this._rand = new Random();
+        this._scale = scale;
         this._size = size;
-        this._scaledSize = size * scale | 0;
-        this._octaves = octaves;
+        this._scaledSize = this.doScale(size);
+        this.computeOptimalOctaves();
         this._seed = seed;
         this._physicGridSize = physicGridSize;
+        this._physicGridScaledSize = this.doScale(physicGridSize);
         this._sceneryGenerator = new SceneryGenerator();
+    }
+
+    doScale(n) {
+        return n / this._scale | 0;
+    }
+
+    computeOptimalOctaves() {
+        this._octaves = Perlin.computeOptimalOctaves(this._size);
     }
 
     get rand() {
@@ -49,15 +57,12 @@ class TileGenerator {
 
     set size(value) {
         this._size = value;
-        this._scaledSize = this._size * this._scale;
+        this._scaledSize = this.doScale(value);
+        this.computeOptimalOctaves();
     }
 
     get octaves() {
         return this._octaves;
-    }
-
-    set octaves(value) {
-        this._octaves = value;
     }
 
     get seed() {
@@ -74,7 +79,7 @@ class TileGenerator {
 
     set scale(value) {
         this._scale = value;
-        this._scaledSize = this._size * this._scale;
+        this._scaledSize = this.doScale(value);
     }
 
     /**
@@ -111,7 +116,9 @@ class TileGenerator {
 
     generateWhiteNoise() {
         const rand = this._rand;
-        return Tools2D.createArray2D(this._size, this._size, () => rand.rand());
+        return Tools2D.createArray2D(this._scaledSize, this._scaledSize, (x, y) => {
+            return rand.rand()
+        });
     }
 
     /**
@@ -195,7 +202,6 @@ class TileGenerator {
             return cached;
         }
         let wnCache = this._cache.wn;
-
         const gwn = (xg, yg) => {
             let cachedNoise = wnCache.load(xg, yg);
             if (cachedNoise) {
@@ -212,7 +218,7 @@ class TileGenerator {
         };
 
         const merge33 = a33 => {
-            let h = this._size;
+            let h = this._scaledSize;
             let a = [];
             let i = 0;
             for (let y, ya = 0; ya < 3; ++ya) {
@@ -228,7 +234,7 @@ class TileGenerator {
         };
 
         const extract33 = a => {
-            let s = this._size;
+            let s = this._scaledSize;
             return a.slice(s, s << 1).map(r => r.slice(s, s << 1));
         };
 
@@ -256,7 +262,7 @@ class TileGenerator {
         const heightMap = this.generateHeighMap(x, y, callbacks);
         const physicMap = Tools2D
             .map2D(
-                this.buildPhysicMap(heightMap, this._physicGridSize),
+                this.buildPhysicMap(heightMap, this._physicGridScaledSize),
                 (x, y, cell) => cell.type
             );
         //const sceneries = this._sceneryGenerator.generate(this._seed, x, y, physicMap);
