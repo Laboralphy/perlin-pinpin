@@ -6,7 +6,7 @@ import Names from '../names';
 class Worker {
 
     log(...args) {
-        console.log('[WW]', ...args);
+        console.log('[ww]', ...args);
     }
 
     /**

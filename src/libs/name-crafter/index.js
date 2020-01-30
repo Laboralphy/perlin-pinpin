@@ -47,16 +47,11 @@ class NameCrafter {
     }
 
     set list(value) {
-        this.setList(value);
-    }
-
-    /**
-     * Définir la liste des noms parmis lesquels s'inspirer pour créer un nouveau nom
-     * @param l {Array}
-     */
-    setList(l) {
-        this._list = l;
-        l.forEach(s => this.addWord(s));
+        this._list = value;
+        this._initReg = new CharRegistry();
+        this._finalReg = {};
+        this._midReg = {};
+        value.forEach(s => this.addWord(s));
     }
 
     /**

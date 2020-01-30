@@ -49,20 +49,6 @@ class SceneryGenerator {
         let aResults = [];
 
 
-        console.log(pf.findPatterns(
-            [
-                [11, 11, 11, 11, 11, 11, 11, 11],
-                [11, 11, 11, 11, 11, 11, 11, 11],
-                [11, 11, 11, 11, PHYS_COAST, PHYS_COAST, PHYS_SHORE, PHYS_WATER],
-                [11, 11, 11, 11, PHYS_COAST, PHYS_COAST, PHYS_SHORE, PHYS_WATER],
-                [11, 11, 11, 11, PHYS_COAST, PHYS_COAST, PHYS_SHORE, PHYS_WATER],
-                [11, 11, 11, 11, PHYS_COAST, PHYS_COAST, PHYS_SHORE, PHYS_WATER],
-                [11, 11, 11, 11, 11, 11, 11, 11],
-                [11, 11, 11, 11, 11, 11, 11, 11]
-            ],
-            PATTERNS.port.size4east
-        ));
-
         aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4east);
         if (aPatterns.length > 0) {
             const p = aPatterns[seed % aPatterns.length];
@@ -73,6 +59,7 @@ class SceneryGenerator {
                 dir: 'e',
                 width: 4,
                 height: 4,
+                seed,
                 name: ''
             });
         }
@@ -87,6 +74,7 @@ class SceneryGenerator {
                 dir: 'w',
                 width: 4,
                 height: 4,
+                seed,
                 name: ''
             });
         }
@@ -101,11 +89,12 @@ class SceneryGenerator {
                 dir: 's',
                 width: 4,
                 height: 4,
+                seed,
                 name: ''
             });
         }
 
-        aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4west);
+        aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4north);
         if (aPatterns.length > 0) {
             const p = aPatterns[seed % aPatterns.length];
             aResults.push({
@@ -115,6 +104,7 @@ class SceneryGenerator {
                 dir: 'n',
                 width: 4,
                 height: 4,
+                seed,
                 name: ''
             });
         }
@@ -130,7 +120,7 @@ class SceneryGenerator {
 
     generate(seed, x, y, physicMap) {
         const a = [];
-        a.push(this.generatePort(pcghash(x, y, seed), x, y, physicMap));
+        a.push(this.generatePort(Math.abs(pcghash(x, y, seed)), x, y, physicMap));
         return a.filter(x => !!x);
     }
 }

@@ -50,8 +50,9 @@ async function runCarto() {
 				break;
 		}
 		if (b) {
-			c.view(oCanvas, vView);
-			c.renderTiles();
+			c
+				.view(oCanvas, vView)
+				.then(() => c.renderTiles());
 		}
 	})
 }

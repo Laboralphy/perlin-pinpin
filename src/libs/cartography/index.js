@@ -19,6 +19,7 @@ class Service {
         preload = 0, // nombre de tuile a précharger autour de la zone de vue
         progress = null, // fonction callback appelée quand les tuiles se chargent
         scale = 1,  // zoom de tuiles
+        altitudes, // url du json des altitudes
         names // nom des villes
     }) {
         this._worldDef = {
@@ -32,6 +33,7 @@ class Service {
             progress,
             brushes,
             scale,
+            altitudes,
             names
         };
         this._view = new Vector();
@@ -75,6 +77,7 @@ class Service {
                 palette: wgd.palette,
                 cache: wgd.cache,
                 names: wgd.names,
+                altitudes: wgd.altitudes,
                 scale: wgd.scale
             }, response => {
                 this.checkResponse(response, resolve, reject);
@@ -213,9 +216,10 @@ class Service {
         let x = Math.round(vView.x);
         let y = Math.round(vView.y);
         this.adjustCacheSize(oCanvas.width, oCanvas.height);
+        this._view.set(x - (oCanvas.width >> 1), y - (oCanvas.height >> 1));
         if (!this._fetching) {
             this._fetching = true;
-            this.preloadTiles(x, y, oCanvas.width, oCanvas.height).then(({tileFetched, timeElapsed}) => {
+            return this.preloadTiles(x, y, oCanvas.width, oCanvas.height).then(({tileFetched, timeElapsed}) => {
                 this._fetching = false;
                 if (tileFetched > 0) {
                     this.log('fetched', tileFetched, 'tiles in', timeElapsed, 's.', (tileFetched * 10 / timeElapsed | 0) / 10, 'tiles/s');
@@ -223,9 +227,11 @@ class Service {
                 if (bRender) {
                     this.renderTiles();
                 }
+                return true;
             });
+        } else {
+            return Promise.resolve(true);
         }
-        this._view.set(x - (oCanvas.width >> 1), y - (oCanvas.height >> 1));
     }
 
 

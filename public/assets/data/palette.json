@@ -25,9 +25,14 @@
     "color": "#d2a638"
   },
   {
-    "description": "highland",
+    "description": "forest",
     "altitude": 75,
-    "color": "#b97735"
+    "color": "#996f21"
+  },
+  {
+    "description": "highland",
+    "altitude": 85,
+    "color": "#b98735"
   },
   {
     "description": "summit",

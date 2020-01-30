@@ -39,7 +39,6 @@ class WorldGenerator {
             names,
             scale = 1
         }) {
-        console.log(this._cellFilterMinMax.toString());
         this._view = new View();
         this._masterSeed = seed;
         this._rand = new Random();
@@ -75,6 +74,8 @@ class WorldGenerator {
         this.options({
             palette
         });
+
+        Names.setList('towns', names);
     }
 
     /**
@@ -387,7 +388,7 @@ class WorldGenerator {
         if (base < 0.45) {
             return base * value;
         } else {
-            return Math.max(0, Math.min(0.999, Math.sqrt(value + base - 0.45))); //Math.max(0, Math.min(0.999, 1.666 * (base - value * 0.25)));
+            return Math.max(0, Math.min(0.999, Math.sqrt(value + base - 0.45)));
         }
     }
 
@@ -402,7 +403,7 @@ class WorldGenerator {
         const vorCluster = this.computeVoronoiHeightMap(x_rpv, y_rpv);
         const cells = vorCluster.cells;
         // a partir du bruit généré par le t generator on adjoin l'altitude de la t
-        const {heightMap, physicMap} = this._tileGenerator.generate(x_rpt, y_rpt, {
+        const {heightMap, physicMap, sceneries} = this._tileGenerator.generate(x_rpt, y_rpt, {
             noise: (xi_rpt, yi_rpt, aNoise) => {
                 const oThisTile = this.getVoronoiTile(vorCluster, xi_rpt, yi_rpt);
                 const hm = cells[oThisTile.cell].heightMap;
@@ -423,6 +424,7 @@ class WorldGenerator {
         oTile = {
             colorMap,
             physicMap,
+            sceneries,
             x: x_rpt,
             y: y_rpt,
             physicGridSize: this._physicGridSize

@@ -153,13 +153,13 @@ class TileGenerator {
             if (n < 0.5) {
                 return 1;
             }
-            if (n < 0.65) {
+            if (n < 0.7) {
                 return 2;
             }
-            if (n < 0.75) {
+            if (n < 0.8) {
                 return 3;
             }
-            if (n < 0.85) {
+            if (n < 0.9) {
                 return 4;
             }
             return 5;
@@ -265,10 +265,11 @@ class TileGenerator {
                 this.buildPhysicMap(heightMap, this._physicGridScaledSize),
                 (x, y, cell) => cell.type
             );
-        //const sceneries = this._sceneryGenerator.generate(this._seed, x, y, physicMap);
+        const sceneries = this._sceneryGenerator.generate(this._seed, x, y, physicMap);
         t = {
             heightMap,
-            physicMap
+            physicMap,
+            sceneries
         };
         this._cache.t.store(x, y, t);
         return t;
