@@ -17,10 +17,10 @@ async function runCarto() {
 		worker: '../dist/worker.js',
 		brushes: document.baseURI + 'assets/data/brushes.json',
 		names: document.baseURI + 'assets/data/towns-fr.json',
-		scale: 1
+		scale: 2
 	});
 
-	const vView = new Vector(1024, 0);
+	const vView = new Vector(-1792, 0);
 
 	await c.start();
 	await c.view(oCanvas, vView,true);
