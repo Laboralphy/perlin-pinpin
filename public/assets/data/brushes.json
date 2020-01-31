@@ -25,49 +25,49 @@
   },
   {
     "type": "city",
-    "orientation": "ns",
+    "orientation": "ew",
     "code": "minaret",
     "src": "assets/graphics/sceneries/city23-minaret.png",
     "description": "oriental city with minaret"
   },
   {
     "type": "city",
-    "orientation": "ns",
+    "orientation": "ew",
     "code": "storage",
     "src": "assets/graphics/sceneries/city23-storage.png",
     "description": "occidental medieval city with storage"
   },
   {
     "type": "city",
-    "orientation": "ew",
+    "orientation": "ns",
     "code": "desert",
     "src": "assets/graphics/sceneries/city32-desert.png",
     "description": "oriental desert house with round roofs"
   },
   {
     "type": "city",
-    "orientation": "ew",
+    "orientation": "ns",
     "code": "temple",
     "src": "assets/graphics/sceneries/city32-temple.png",
     "description": "oriental desert house with round roofs"
   },
   {
     "type": "city",
-    "orientation": "ew",
+    "orientation": "ns",
     "code": "inn",
     "src": "assets/graphics/sceneries/city32-inn.png",
     "description": "occidental inn with round storage house"
   },
   {
     "type": "city",
-    "orientation": "ew",
+    "orientation": "ns",
     "code": "town",
     "src": "assets/graphics/sceneries/city32-town.png",
     "description": "occidental small town"
   },
   {
     "type": "city",
-    "orientation": "ew",
+    "orientation": "ns",
     "code": "village",
     "src": "assets/graphics/sceneries/city32-village.png",
     "description": "occidental small village"

@@ -14,7 +14,6 @@ const PHYS_FOREST = 33;
 const PHYS_PEAK = 55;
 
 const COORDS_FONT_DEFINITION = 'italic 13px Times New Roman';
-const MESH_SIZE = 16;
 const FONT_SIZE = 28;
 const FONT_PAD = 4;
 const CITY_FONT_DEFINITION = 'px bold Times New Roman';
@@ -82,7 +81,6 @@ class TileRenderer {
 
 
     drawCity(oCanvas, data, physicGridSize) {
-        console.log('drawing city', data);
         const {x, y, width, height, name, seed, dir} = data;
         let nFontSize = FONT_SIZE;
         if (name.length > 10) {
@@ -97,8 +95,12 @@ class TileRenderer {
             ? 'ns'
             : 'ew';
 
-        const cities = Object.values(this._brushes.city).filter(b => b.orientation === sOrient);
-        const city = cities[Math.abs(seed) % cities.length];
+        const cities = Object
+            .values(this._brushes.city)
+            .filter(b => b.orientation === sOrient);
+        const city = cities[seed % cities.length];
+        console.log(data, city);
+        console.log(this._brushes.city);
         switch (dir) {
             case 'w':
                 ctx.drawImage(city.img , xm + physicGridSize, ym);
@@ -123,12 +125,19 @@ class TileRenderer {
 
         this.setCityNameFont(ctx, nFontSize);
         // déterminer si le nom de la ville sera en haut ou en bas
-        let xf = xm, yf = ym;
-        if (yf - FONT_SIZE - FONT_PAD < 0) {
-            yf = yf + hm + 4;
-        } else {
-            yf -= FONT_SIZE + FONT_PAD;
+        let xf = xm, yf = ym + hm;
+        ctx.textBaseline = 'top';
+        if (yf + FONT_SIZE >= oCanvas.height) {
+            ctx.textBaseline = 'bottom';
+            yf = ym - FONT_PAD;
         }
+        //
+        // if (yf - FONT_SIZE - FONT_PAD < 0) {
+        //     // si on l'écrit au dessus, le nom de la ville sera tronqué
+        //     yf += hm + FONT_PAD;
+        // } else {
+        //     yf -= FONT_SIZE + FONT_PAD;
+        // }
         const wt = ctx.measureText(name).width;
         if (xf + wt >= oCanvas.width) {
             xf = oCanvas.width - wt - 1;
@@ -140,7 +149,6 @@ class TileRenderer {
 
 
     paintSceneries(oCanvas, data, physicGridSize) {
-        console.log(data);
         data.forEach(d => {
             switch (d.type) {
                 case 'city':

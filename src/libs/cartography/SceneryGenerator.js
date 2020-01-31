@@ -44,12 +44,20 @@ const PATTERNS = {
 
 
 class SceneryGenerator {
+
+    _suitablePosition(nSize, {x, y}) {
+        return x > 0 && y > 0 && x < nSize - 4 && y < nSize - 4;
+    }
+
     generatePort(seed, x, y, physicMap) {
         let aPatterns;
         let aResults = [];
+        const nSize = physicMap.length;
 
 
-        aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4east);
+        aPatterns = pf
+            .findPatterns(physicMap, PATTERNS.port.size4east)
+            .filter(p => this._suitablePosition(nSize, p));
         if (aPatterns.length > 0) {
             const p = aPatterns[seed % aPatterns.length];
             aResults.push({
@@ -64,7 +72,8 @@ class SceneryGenerator {
             });
         }
 
-        aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4west);
+        aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4west)
+            .filter(p => this._suitablePosition(nSize, p));
         if (aPatterns.length > 0) {
             const p = aPatterns[seed % aPatterns.length];
             aResults.push({
@@ -79,7 +88,8 @@ class SceneryGenerator {
             });
         }
 
-        aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4south);
+        aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4south)
+            .filter(p => this._suitablePosition(nSize, p));
         if (aPatterns.length > 0) {
             const p = aPatterns[seed % aPatterns.length];
             aResults.push({
@@ -94,7 +104,8 @@ class SceneryGenerator {
             });
         }
 
-        aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4north);
+        aPatterns = pf.findPatterns(physicMap, PATTERNS.port.size4north)
+            .filter(p => this._suitablePosition(nSize, p));
         if (aPatterns.length > 0) {
             const p = aPatterns[seed % aPatterns.length];
             aResults.push({
@@ -120,7 +131,7 @@ class SceneryGenerator {
 
     generate(seed, x, y, physicMap) {
         const a = [];
-        a.push(this.generatePort(Math.abs(pcghash(x, y, seed)), x, y, physicMap));
+        a.push(this.generatePort(pcghash(x, y, seed), x, y, physicMap));
         return a.filter(x => !!x);
     }
 }
