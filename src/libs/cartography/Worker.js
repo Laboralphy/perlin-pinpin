@@ -1,7 +1,6 @@
 import WorldGenerator from './WorldGenerator';
 import Webworkio from 'webworkio';
-import {fetchJSON} from'../fetch-json';
-import Names from '../names';
+import * as CONSTS from './consts';
 
 class Worker {
 
@@ -26,29 +25,26 @@ class Worker {
         tileSize,
         vorCellSize,
         vorClusterSize,
+        physicGridSize,
         scale
     }) {
-      this.log('fetching palette', palette);
-      const aPalette = await fetchJSON(palette);
-      this.log('fetching names', names);
-      const aNames = await fetchJSON(names);
 
       this.log('creating world generator');
       this._wg = new WorldGenerator({
         seed,
-        palette: aPalette,
+        palette,
         cache,
         tileSize,
         vorCellSize,
         vorClusterSize,
-        names: aNames,
+        names,
+        physicGridSize,
         scale
       });
       return true;
     }
 
     actionOptions(options) {
-        console.log('worker options', options);
     }
 
     constructor() {
@@ -70,6 +66,29 @@ class Worker {
 
         wwio.on('tile', ({x, y}, cb) => {
             cb(this._wg.computeTile(x, y));
+        });
+
+        wwio.on('find-tile', (oSearch, cb) => {
+            let tile = null;
+            console.log(oSearch);
+            switch (oSearch.type) {
+                case CONSTS.FIND_TILE_CLOSEST_BELOW_ALTITUDE:
+                    tile = this._wg.findClosestTileBelowAltitude(
+                        oSearch.x,
+                        oSearch.y,
+                        oSearch.z,
+                        oSearch.p
+                    );
+                    break;
+
+                case CONSTS.FIND_TILE_COAST_NEAR_DIRECTION:
+                    tile = this._wg.findCoastalTileDirection(
+                        oSearch.x,
+                        oSearch.y,
+                        oSearch.a
+                    )
+            }
+            cb(tile);
         });
 
         this._wwio = wwio;

@@ -8,18 +8,34 @@ class SpriteLayer extends Layer {
         this._willBeRemoved = [];
     }
 
+    /**
+     * ajout d'un sprite à afficher dans ce layer
+     * @param sprite {Sprite}
+     */
     add(sprite) {
         this._willBeAdded.push(sprite);
     }
 
+    /**
+     * suppression d'un sprite du layer
+     * @param sprite {Sprite}
+     */
     remove(sprite) {
         this._willBeRemoved.push(sprite);
     }
 
+    /**
+     * Tri des sprite selon la fonction comparative passée en paramètre
+     * @param cb {function}
+     */
     sort(cb) {
         this.sprites.sort(cb);
     }
 
+    /**
+     * modification des coordonnées d'affichage des sprites
+     * @param period {number}
+     */
     update(period) {
         super.update();
         let v = this.sprites;

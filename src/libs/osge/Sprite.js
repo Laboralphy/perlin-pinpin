@@ -20,6 +20,10 @@ class Sprite {
         this.z = 0;
         this.scale = 1;
         this.visible = false;
+        this.rendered = {
+        	x: 0,
+			y: 0
+		}
 	}
 
     fadeIn(fSpeed = 0.05) {
@@ -50,7 +54,7 @@ class Sprite {
 	}
 
 	async define(data) {
-		this.image = await ImageLoader.load(data.image);
+		this.image = await ImageLoader.load('./assets/graphics/sprites/' + data.image + '.png');
 		if (('width' in data) && ('height' in data)) {
 			this.frameWidth = data.width;
 			this.frameHeight = data.height;
@@ -91,7 +95,7 @@ class Sprite {
 	}
 
 	set frame(value) {
-		this._iFrame = value;
+		this._iFrame = value | 0;
 	}
 
 	setAnimation(n) {
@@ -131,14 +135,18 @@ class Sprite {
 			const hScaled = h * scale;
 			const wScaledDiff = Math.floor((w - wScaled) / 2);
 			const hScaledDiff = Math.floor((h - hScaled) / 2);
+			const xrend = p.x + wScaledDiff;
+			const yrend = p.y + hScaledDiff;
+			this.rendered.x = xrend;
+			this.rendered.y = yrend;
             ctx.drawImage(
                 this.image,
                 f.x,
                 f.y,
                 w,
                 h,
-                p.x + wScaledDiff,
-                p.y + hScaledDiff,
+				xrend,
+				yrend,
                 wScaled,
                 hScaled
             );

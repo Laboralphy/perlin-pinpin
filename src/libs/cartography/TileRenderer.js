@@ -99,8 +99,6 @@ class TileRenderer {
             .values(this._brushes.city)
             .filter(b => b.orientation === sOrient);
         const city = cities[seed % cities.length];
-        console.log(data, city);
-        console.log(this._brushes.city);
         switch (dir) {
             case 'w':
                 ctx.drawImage(city.img , xm + physicGridSize, ym);

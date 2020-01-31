@@ -17,6 +17,12 @@ module.exports = {
     mode: 'development',
     devtool: 'source-map',
     module: {
+        rules: [
+            {
+                test: /\.json$/,
+                loader: 'json-loader'
+            }
+        ]
     },
     target: 'web'
 };

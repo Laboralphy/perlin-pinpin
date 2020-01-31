@@ -8,6 +8,7 @@ import * as Tools2D from '../tools2d';
 import TileGenerator from "./TileGenerator";
 import Names from '../names';
 import Rainbow from "../rainbow";
+import Bresenham from "../bresenham";
 
 const {Vector, View, Point} = Geometry;
 
@@ -30,15 +31,23 @@ class WorldGenerator {
 
     constructor({
             seed = 0,
-            palette = null,
+            palette,
             cache = 64,
             tileSize,
             vorCellSize = 50,
             vorClusterSize = 6,
-            physicGridSize = 16,
+            physicGridSize,
             names,
             scale = 1
         }) {
+        if (
+            palette === undefined ||
+            tileSize === undefined ||
+            physicGridSize === undefined ||
+            names === undefined
+        ) {
+            throw new Error('WorldGenerator error: Undefined required property (palette, tileSize, physicGridSize, names)');
+        }
         this._view = new View();
         this._masterSeed = seed;
         this._rand = new Random();
@@ -60,7 +69,6 @@ class WorldGenerator {
                 size: cache
             })
         };
-
         this._tileGenerator = new TileGenerator({
             seed,
             size: tileSize,
@@ -357,7 +365,7 @@ class WorldGenerator {
                     seed // seed de base de cette cellule
                 };
             });
-        oStructure = {cells, tiles};
+        oStructure = {cells, tiles, vor};
         this._cache.vor.store(x_rpv, y_rpv, oStructure);
         return oStructure;
     }
@@ -390,6 +398,90 @@ class WorldGenerator {
         } else {
             return Math.max(0, Math.min(0.999, Math.sqrt(value + base - 0.45)));
         }
+    }
+
+    /**
+     * Cherche un poiunt d'altitude ou de profondeur autour d'une certaine position
+     */
+    findClosestTileBelowAltitude(x_rpt, y_rpt, altitude, precision ) {
+        const gh = Geometry.Helper;
+        const x_rpv = this.rpt_rpv(x_rpt);
+        const y_rpv = this.rpt_rpv(y_rpt);
+        const vorCluster = this.computeVoronoiHeightMap(x_rpv, y_rpv);
+        const {tiles} = vorCluster;
+        const aXYTiles = [];
+        for (let sy in tiles) {
+            const tileRow = tiles[sy];
+            const y = parseInt(sy);
+            for (let sx in tileRow) {
+                const x = parseInt(sx);
+                const tile = tileRow[sx];
+                const z = tile.z;
+                const tt = {
+                    x, y, z,
+                    wr: z >= altitude && z <= (altitude - precision) ? 1 : 0,
+                    d: gh.squareDistance(x_rpt, y_rpt, x, y)
+                };
+                aXYTiles.push(tt);
+            }
+        }
+        return aXYTiles
+            .sort((a, b) => {
+                const dwr = b.wr - a.wr;
+                if (dwr !== 0) {
+                    return dwr;
+                }
+                return a.d - b.d;
+            })
+            .shift();
+    }
+
+    /**
+     * recherche le point cotier d'une cellule voronoi
+     * @param x_rpt {number} coordonnées tile de départ
+     * @param y_rpt {number}
+     * @param angle {number} direction dans laquelle on cherche
+     */
+    findCoastalTileDirection(x_rpt, y_rpt, angle) {
+        const gh = Geometry.Helper;
+        const x_rpv = this.rpt_rpv(x_rpt);
+        const y_rpv = this.rpt_rpv(y_rpt);
+        const {tiles, vor} = this.computeVoronoiHeightMap(x_rpv, y_rpv);
+
+        // obtention du germe voronoi le plus proche du point spécifié en paramètre
+        const oNearestGerm = vor
+            .germs
+            .slice(0)
+            .sort((a, b) => gh.squareDistance(a.x, a.y, x_rpt, y_rpt) - gh.squareDistance(b.x, b.y, x_rpt, y_rpt))
+            .shift();
+
+        // calculer les median de ce germe
+        const aMedians = oNearestGerm.nearest.map(n => n.median);
+
+        // garder le median correspondant à l'angle transmis en parametre
+        let xFound = Math.floor(aMedians[angle % aMedians.length].x);
+        let yFound = Math.floor(aMedians[angle % aMedians.length].y);
+
+        // trouver le point immédiatement inférieur à 0.45
+        // tracer une ligne partant du point median vers le centre du germe
+        // s'arreter lorsque l'altitude monte au dessus de 0.45
+        let xLast = xFound, yLast = yFound;
+        Bresenham.line(xFound, yFound, oNearestGerm.x, oNearestGerm.y, (x, y, n) => {
+            if (y in tiles) {
+                const tileRow = tiles[y];
+                if (x in tileRow) {
+                    xLast = x;
+                    yLast = y;
+                    return tileRow[x].z < 0.45;
+                }
+            }
+            return true;
+        });
+
+        // à partir de ce point trouve un point d'altitude proche de la côte
+        const XXX = this.findClosestTileBelowAltitude(xLast, yLast, 0.45, 0.1);
+        console.log(XXX);
+        return XXX;
     }
 
     computeTile(x_rpt, y_rpt) {
