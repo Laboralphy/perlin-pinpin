@@ -29,7 +29,7 @@ class Cursor {
             const p = data.target;
             // explo
             const phys = entity.game.cartography.getPhysicValue(p.x, p.y);
-            if (!!phys && phys.type === 11) {
+            if (phys === 11) {
                 const puff = await entity.game.createEntity('splash_0', p); // link below
                 const wave = await entity.game.createEntity('wave_0', p); // link below
                 entity.game.linkEntity(wave);

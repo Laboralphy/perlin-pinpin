@@ -44,7 +44,7 @@ class Boat extends Aerostat {
             false,
             (x, y) => {
                 const p = entity.game.cartography.getPhysicValue(x, y);
-                return !!p && p.type !== 11;
+                return p !== 11;
             }
         );
         if (c.wcf.x || c.wcf.y) {

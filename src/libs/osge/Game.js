@@ -21,6 +21,17 @@ class Game {
 		this._charge = 0;
 	}
 
+	set period(value) {
+		this._time.period = value;
+		if (this._interval !== null) {
+			this.restart();
+		}
+	}
+
+	get period() {
+		return this._time.period;
+	}
+
 	/**
 	 * démarrage du timer perttant de lancer l'animation
 	 * l'animation peut etre stoppée avec stop()
@@ -38,7 +49,16 @@ class Game {
 	stop() {
         if (this._interval) {
             clearInterval(this._interval);
+			this._interval = null;
         }
+	}
+
+	/**
+	 * relance le timer (lorsque la periode a changé)
+	 */
+	restart() {
+		this.stop();
+		this.start();
 	}
 
 	/**
