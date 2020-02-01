@@ -114,22 +114,31 @@ class Service {
         });
     }
 
+    /**
+     * décharge le web worker de la mémoire
+     */
     terminate() {
         this._wwio.terminate();
         this.log('service terminated');
     }
 
     progress(n100) {
-        //this.log('progress', n100 + '%');
+        this.log('progress', n100 + '%');
         if (typeof this._worldDef.progress === 'function') {
             this._worldDef.progress(n100);
         }
     }
 
     log(...args) {
-        console.log('[c]', ...args);
+        //console.log('[c]', ...args);
     }
 
+    /**
+     * calcule le nombre de tuiles max qui seront mises en cache
+     * @param w {number} largeur de la zone visible
+     * @param h {number} hauteur de la zone visible
+     * @returns {Promise<Boolean>}
+     */
     adjustCacheSize(w, h) {
         return new Promise(resolve => {
             let tileSize = this._worldDef.tileSize;
@@ -147,6 +156,13 @@ class Service {
                 resolve(true);
             }
         });
+    }
+
+    /**
+     * effacement du cache de tuile, qui sera recréé à la prochaine image
+     */
+    clearCache() {
+        this._cacheAdjusted = false;
     }
 
     /**
@@ -295,7 +311,7 @@ class Service {
             return this.preloadTiles(x, y, oCanvas.width, oCanvas.height).then(({tileFetched, timeElapsed}) => {
                 this._fetching = false;
                 if (tileFetched > 0) {
-                    //this.log('fetched', tileFetched, 'tiles in', timeElapsed, 's.', (tileFetched * 10 / timeElapsed | 0) / 10, 'tiles/s');
+                    this.log('fetched', tileFetched, 'tiles in', timeElapsed, 's.', (tileFetched * 10 / timeElapsed | 0) / 10, 'tiles/s');
                 }
                 if (bRender) {
                     this.renderTiles();

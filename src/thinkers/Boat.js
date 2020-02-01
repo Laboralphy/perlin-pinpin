@@ -43,7 +43,7 @@ class Boat extends Aerostat {
             16,
             false,
             (x, y) => {
-                const p = entity.game.carto.getPhysicValue(x, y);
+                const p = entity.game.cartography.getPhysicValue(x, y);
                 return !!p && p.type !== 11;
             }
         );

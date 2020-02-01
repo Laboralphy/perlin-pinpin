@@ -18,10 +18,6 @@ module.exports = {
     devtool: 'source-map',
     module: {
         rules: [
-            {
-                test: /\.json$/,
-                loader: 'json-loader'
-            }
         ]
     },
     target: 'web'

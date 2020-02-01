@@ -1,9 +1,7 @@
 import Time from './Time';
-import {View, Vector} from '../geometry';
+import {Vector, View} from '../geometry';
 import DOMEvents from './DOMEvents';
-import ImageLoader from '../image-loader';
 import CanvasHelper from "../canvas-helper";
-
 
 
 class Game {

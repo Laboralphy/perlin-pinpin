@@ -28,7 +28,7 @@ class Cursor {
         if (data.lifetime <= 0) {
             const p = data.target;
             // explo
-            const phys = entity.game.carto.getPhysicValue(p.x, p.y);
+            const phys = entity.game.cartography.getPhysicValue(p.x, p.y);
             if (!!phys && phys.type === 11) {
                 const puff = await entity.game.createEntity('splash_0', p); // link below
                 const wave = await entity.game.createEntity('wave_0', p); // link below

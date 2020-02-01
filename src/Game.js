@@ -30,12 +30,12 @@ class Game extends osge.Game {
         this._collidingEntities = [];
     }
 
-    get carto() {
+    get cartography() {
     	return this._carto;
 	}
 
 	onClick(event) {
-		let p = this.mouse.add(this.carto._view);
+		let p = this.mouse.add(this.cartography._view);
     	if (event.shiftKey) {
 			this.state.player.data.input.fire = new Vector(p);
 		} else {
@@ -130,7 +130,7 @@ class Game extends osge.Game {
     async init() {
         await super.init();
 
-		const oCanvas = document.querySelector('canvas');
+		const oCanvas = document.querySelector('canvas.world');
 		const oContext = oCanvas.getContext('2d');
 
 		this.canvas(oCanvas);
@@ -140,7 +140,7 @@ class Game extends osge.Game {
 
 		const c = new Cartography({
 			seed: 0,
-			preload: 2,
+			preload: 1,
 			palette: DATA.palette,
 			cellSize: 25,
 			tileSize: 256,
@@ -148,12 +148,12 @@ class Game extends osge.Game {
 			brushes: DATA.brushes,
 			names: DATA.towns_fr,
 			physicGridSize: 16,
-			scale: 2
+			scale: 2,
+			progress: Indicators.progress
 		});
 
 		this._carto = c;
-		this._spriteLayer = new SpriteLayer();
-
+		this.layers.push(this._spriteLayer = new SpriteLayer());
 
 		const vView = new Vector(0, 0);
 		await c.start();
@@ -174,6 +174,7 @@ class Game extends osge.Game {
         // création du sprite curseur de destination
 		this.state.cursor = await this.createEntity('cursor', new Vector(0, 0));
 		this.linkEntity(this.state.cursor);
+
     }
 
     sortSprite(e1, e2) {
@@ -251,7 +252,7 @@ class Game extends osge.Game {
 
     render() {
     	const v = this.state.view;
-    	const c = this.carto;
+    	const c = this.cartography;
 		c.view(this.renderCanvas, v);
 		c.renderTiles();
 		this._spriteLayer.sort(this.sortSprite);
