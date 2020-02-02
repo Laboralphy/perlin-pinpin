@@ -33,7 +33,7 @@ class Aerostat {
 	}
 
 
-	think(entity) {
+	think(entity, game) {
 		let pdata = entity.data;
 		if (!pdata.destination.isEqual(pdata.position)) {
 			if (pdata.destination.sub(pdata.position).magnitude() <= pdata.maxSpeed) {

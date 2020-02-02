@@ -6,6 +6,7 @@ import THINKERS from './thinkers';
 import DATA from './data/index';
 import * as CARTOGRAPHY_CONSTS from './libs/cartography/consts';
 import CONFIG from "./config.json";
+import Entity from "./Entity";
 
 const Vector = Geometry.Vector;
 const SpriteLayer = osge.SpriteLayer;
@@ -15,7 +16,6 @@ class Game extends osge.Game {
     constructor() {
         super();
         this.period = CONFIG.timer;
-        this._lastEntityId = 0;
         this._carto = null;
         this.state = {
         	time: 0,
@@ -86,57 +86,17 @@ class Game extends osge.Game {
 	 * création d'une entité. Les entité créées doivent être lié
 	 * avec la methode linkEntity
 	 * @param sResRef {string} reference du blueprint
-	 * @param vPosition {Vector} position initiale
-	 * @returns {Promise<{game: Game, data, sprite: Sprite, thinker, id: number}>}
+	 * @returns {Promise<{Entity}>}
 	 */
-	async createEntity(sResRef, vPosition) {
-    	let bp0 = DATA['blueprints/' + sResRef];
-    	if (bp0 === undefined) {
-    		throw new Error('this blueprint does not exist : "' + sResRef + '"');
-		}
-    	let blueprint = Object.assign({
-			"angle": 0,                   // angle de cap
-			"angleSpeed": 0,              // amplitude d emofication de l'angle
-			"position": new Vector(vPosition.x, vPosition.y),     // position actuelle
-			"destination": new Vector(),  // position vers laquelle on se dirige
-			"enginePower": 0,             // inc/dec de la vitesse du moteur
-			"speed": 0,                   // vitesse actuelle
-			"maxSpeed": 0,                // vitesse max
-			"sprite": Object.assign({}, DATA['tiles/' + bp0.tileset]),
-			"thinker": "",
-			"repulse": new Vector(),
-			"sector": {
-				x: 0,
-				y: 0
-			},
-			"input": {
-				"keys": {},
-			}
-		}, bp0);
-    	blueprint.sprite.ref = new Vector(blueprint.sprite.ref.x, blueprint.sprite.ref.y);
-		let id = ++this._lastEntityId;
-		let sprite = new osge.Sprite();
-		await sprite.define(blueprint.sprite);
-		sprite.z = bp0.z || 0;
-		if (!(blueprint.thinker in THINKERS)) {
-			throw new Error('this thinker does not exist : "' + blueprint.thinker);
-		}
-		const oThinker = THINKERS[blueprint.thinker];
-
-		let oEntity = {
-			id,
-			sprite,
-            thinker: oThinker,
-			data: blueprint,
-			game: this
-		};
+	async createEntity(sResRef) {
+		const oEntity = new Entity(sResRef);
 		return oEntity;
 	}
 
 	/**
 	 * Integration de l'entité spécifé dans le jeu.
 	 * @param entity {*}
-	 * @returns {*}
+	 * @returns {Entity}
 	 */
 	linkEntity(entity) {
 		this._spriteLayer.add(entity.sprite);
@@ -145,6 +105,41 @@ class Game extends osge.Game {
 			this._collidingEntities.push(entity);
 		}
 		return entity;
+	}
+
+
+	/**
+	 * Créaation et liaison d'une nouvelle entité
+	 * @param sResRef {string}
+	 * @param vPosition {Vector}
+	 * @returns {Promise<{Entity}>}
+	 */
+	async spawnEntity(sResRef, vPosition) {
+		const oEntity = await this.createEntity(sResRef);
+		await oEntity.spawn(vPosition);
+		this.linkEntity(oEntity);
+		return oEntity;
+	}
+
+	/**
+	 * Création d'une entité missile
+	 * @param entity {Entity} entité qui tire le missile
+	 * @param vTarget {Vector} point visé
+	 * @param vOffset {Vector} nombre de pixel de décalage
+	 * @returns {Entity}
+	 */
+	async spawnMissile(entity, vTarget, vOffset) {
+		const pdata = entity.data;
+		const position = pdata.position;
+		//const offset = //Geometry.Helper.polar2rect(pdata.angle, 16);
+		const posBullet = position.add(vOffset);
+		const bullet = await this.createEntity('bullet_0'); // link below
+		bullet.data.target = new Geometry.Vector(vTarget);
+		await bullet.spawn(posBullet);
+		this.linkEntity(bullet);
+		bullet.sprite.fadeIn(1);
+		const explosion = await this.spawnEntity('smoke_0', posBullet); // link below
+		return bullet;
 	}
 
 	/**
@@ -164,6 +159,7 @@ class Game extends osge.Game {
 			}
 		}
 	}
+
 
 	/**
 	 * initialisation du jeu
@@ -204,18 +200,16 @@ class Game extends osge.Game {
 		const oStartingTile = await c.findTile(CARTOGRAPHY_CONSTS.FIND_TILE_COAST_NEAR_DIRECTION, {x: 0, y: 0, a: 4});
 
         // création du joueur
-		this.state.player = await this.createEntity(
+		this.state.player = await this.spawnEntity(
 			'tugboat_1',
 			new Vector(oStartingTile.x * 256, oStartingTile.y * 256)
 		); // link below
-		this.linkEntity(this.state.player);
 		this.domevents.on(oCanvas, 'click', event => this.clickHandler(event));
 		this.domevents.on(document, 'keydown', event => this.keyUpHandler(event));
 		this.domevents.on(document, 'keyup', event => this.keyDownHandler(event));
 
         // création du sprite curseur de destination
-		this.state.cursor = await this.createEntity('cursor', new Vector(0, 0));
-		this.linkEntity(this.state.cursor);
+		this.state.cursor = await this.spawnEntity('cursor', this.state.player.position);
 
     }
 
@@ -247,7 +241,7 @@ class Game extends osge.Game {
 	 */
 	_processThinker(entity) {
 		this._processCollidingSprites(entity);
-		entity.thinker.think(entity);
+		entity.thinker.think(entity, this);
 		entity.data.thought = true;
 		entity.sprite.visible = true;
 	}
